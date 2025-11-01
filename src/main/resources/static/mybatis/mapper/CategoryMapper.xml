@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.backendplantshop.mapper.CategoryMapper">
+    <resultMap id="CategoryResultMap" type="com.example.backendplantshop.entity.Category">
+        <id column="category_id" property="category_id"/>
+        <result column="category_name" property="category_name"/>
+        <result column="created_at" property="created_at"/>
+        <result column="updated_at" property="updated_at"/>
+        <result column="is_deleted" property="is_deleted"/>
+        
+        
+<!--    dùng cho mối quan hệ 1-n-->
+        <collection property="products" ofType="Products">
+            <id column="product_id" property="product_id"/>
+            <result column="product_name" property="product_name"/>
+            <result column="description" property="description"/>
+            <result column="img_url" property="img_url"/>
+            <result column="price" property="price"/>
+            <result column="quantity" property="quantity"/>
+            <result column="size" property="size"/>
+            <result column="created_at" property="created_at"/>
+            <result column="updated_at" property="updated_at"/>
+            <result column="is_deleted" property="is_deleted"/>
+            <result column="category_id" property="category_id"/>
+        </collection>
+    </resultMap>
+    <!-- Các phần tử SQL-->
+    
+    <select id="findById" resultMap="CategoryResultMap" parameterType="integer">
+        SELECT *
+        FROM category
+        WHERE category_id = #{categoryID}
+        AND is_deleted = false
+    </select>
+
+    <select id="findProductByCategory" resultMap="CategoryResultMap">
+        SELECT c.category_id
+               ,c.category_name
+                , p.product_id
+                , p.product_name
+                , p.description
+                , p.img_url
+                , p.price
+                , p.quantity
+                , p.size
+                , p.created_at
+                , p.updated_at
+                , p.is_deleted
+        FROM category c
+        LEFT JOIN products p ON p.category_id = c.category_id AND p.is_deleted = false
+        WHERE c.category_id = #{categoryID} AND c.is_deleted = false
+    </select>
+
+    <select id="getAll" resultMap="CategoryResultMap">
+        SELECT *
+        FROM category
+        WHERE is_deleted = false
+    </select>
+
+    <insert id="insert" parameterType="Category">
+        INSERT INTO category(
+                             category_name
+        )
+        VALUES (
+                #{category_name}
+               )
+    </insert>
+    <update id="update" parameterType="Category">
+        UPDATE category
+        SET category_name = #{category_name}
+            , is_deleted = #{is_deleted}
+        WHERE category_id = #{category_id}
+    </update>
+    <delete id="delete" parameterType="int">
+        UPDATE category
+        SET is_deleted = 1
+        WHERE category_id = #{categoryID}
+    </delete>
+
+
+    <select id="findByName" resultMap="CategoryResultMap">
+        SELECT *
+        FROM category
+        WHERE category_name = #{categoryName}
+        AND is_deleted = false
+    </select>
+
+
+    <select id="findByIdDeleted" resultMap="CategoryResultMap" parameterType="integer">
+        SELECT *
+        FROM category
+        WHERE category_id = #{categoryID}
+          AND is_deleted = true
+    </select>
+    <!-- Đếm số sản phẩm trong danh mục -->
+    <select id="countProductsByCategory" parameterType="int" resultType="int">
+        SELECT COUNT(*)
+        FROM products
+        WHERE category_id = #{categoryID}
+          AND is_deleted = false
+    </select>
+    <update id="restoreCategory" parameterType="int">
+        UPDATE category
+        SET is_deleted = 0,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE category_id = #{categoryID}
+    </update>
+
+</mapper>

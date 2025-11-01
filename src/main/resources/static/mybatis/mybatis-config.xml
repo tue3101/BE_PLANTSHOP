@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+    <!-- Các phần cấu hình sẽ nằm bên trong đây -->
+    <typeAliases>
+        <typeAlias type="com.example.backendplantshop.entity.Category" alias="Category"/>
+        <typeAlias type="com.example.backendplantshop.entity.Products" alias="Products"/>
+        <typeAlias type="com.example.backendplantshop.entity.Discounts" alias="Discounts"/>
+        <typeAlias type="com.example.backendplantshop.entity.Users" alias="Users"/>
+        <typeAlias type="com.example.backendplantshop.entity.Carts" alias="Carts"/>
+        <typeAlias type="com.example.backendplantshop.entity.CartDetails" alias="CartDetails"/>
+        <typeAlias type="com.example.backendplantshop.entity.UserTokens" alias="UserTokens"/>
+    </typeAliases>
+</configuration>

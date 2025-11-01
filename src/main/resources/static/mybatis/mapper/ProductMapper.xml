@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.backendplantshop.mapper.ProductMapper">
+    <resultMap id="ProductResultMap" type="com.example.backendplantshop.entity.Products">
+        <id column="product_id" property="product_id"/>
+        <result column="product_name" property="product_name"/>
+        <result column="description" property="description"/>
+        <result column="img_url" property="img_url"/>
+        <result column="price" property="price"/>
+        <result column="quantity" property="quantity"/>
+        <result column="size" property="size"/>
+        <result column="out_of_stock" property="out_of_stock"/>
+        <result column="created_at" property="created_at"/>
+        <result column="updated_at" property="updated_at"/>
+        <result column="is_deleted" property="is_deleted"/>
+        <result column="category_id" property="category_id"/>
+    </resultMap>
+    <!-- Các phần tử SQL-->
+
+    <select id="findById" resultMap="ProductResultMap" parameterType="integer">
+        select p.product_id
+             ,p.product_name
+             ,p.description
+             ,p.img_url
+             ,p.price
+             ,p.quantity
+             ,p.size
+             ,p.out_of_stock
+             ,p.created_at
+             ,p.updated_at
+             ,p.is_deleted
+             ,p.category_id
+        from products p
+        where p.product_id = #{productID}
+          AND is_deleted = false
+    </select>
+
+    <select id="findByProductNameAndSize" resultMap="ProductResultMap">
+        select p.product_id
+             ,p.product_name
+             ,p.description
+             ,p.img_url
+             ,p.price
+             ,p.quantity
+             ,p.size
+             ,p.out_of_stock
+             ,p.created_at
+             ,p.updated_at
+             ,p.is_deleted
+             ,p.category_id
+        from products p
+        where p.product_name = #{productName}
+          and p.size = #{size}
+          and p.category_id = #{categoryId}
+          and p.is_deleted = false
+    </select>
+
+    <select id="getAll" resultMap="ProductResultMap">
+        SELECT product_id
+             , product_name
+             , description
+             , img_url
+             , price
+             , quantity
+             , size
+             , out_of_stock
+             , created_at
+             , updated_at
+             , is_deleted
+             , category_id
+        FROM products
+        WHERE is_deleted=false
+    </select>
+
+    <insert id="insert" parameterType="Products">
+        INSERT INTO products(
+                              product_name
+                            ,description
+                            ,img_url
+                            ,price
+                            ,quantity
+                            ,size
+                            ,category_id
+        )
+        VALUES (
+                 #{product_name}
+               ,#{description}
+               ,#{img_url}
+               ,#{price}
+               ,#{quantity}
+               ,#{size}
+               ,#{category_id}
+               )
+    </insert>
+
+    <update id="update" parameterType="Products">
+        UPDATE products
+        SET product_name = #{product_name},
+            description = #{description},
+            img_url = #{img_url},
+            price = #{price},
+            quantity = #{quantity},
+            size = #{size},
+            out_of_stock = #{out_of_stock},
+            category_id = #{category_id},
+            is_deleted = #{is_deleted}
+        WHERE product_id = #{product_id}
+    </update>
+
+
+    <delete id="delete" parameterType="int">
+        UPDATE products
+        SET is_deleted = 1
+        WHERE product_id = #{productID}
+    </delete>
+
+
+
+    <select id="findByIdDeleted" resultMap="ProductResultMap" parameterType="integer">
+        SELECT *
+        FROM products
+        WHERE product_id = #{productID}
+          AND is_deleted = true
+    </select>
+    <update id="restoreProduct" parameterType="int">
+        UPDATE products
+        SET is_deleted = 0,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE product_id = #{productID}
+    </update>
+
+</mapper>

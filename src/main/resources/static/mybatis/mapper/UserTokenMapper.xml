@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.backendplantshop.mapper.UserTokenMapper">
+    <resultMap id="UserTokenResultMap" type="com.example.backendplantshop.entity.UserTokens">
+        <id column="token_id" property="token_id"/>
+        <result column="user_id" property="user_id"/>
+        <result column="token" property="token"/>
+        <result column="expired_at" property="expires_at"/>
+        <result column="revoked" property="revoked"/>
+        <result column="created_at" property="created_at"/>
+
+    </resultMap>
+    <!-- Các phần tử SQL-->
+
+
+
+    <insert id="insertToken" >
+        INSERT INTO user_tokens( user_id
+                               , token
+                               , expired_at
+                               , revoked)
+        VALUES (
+                #{user_id}
+               , #{token}
+               , #{expires_at}
+               , #{revoked}
+               )
+    </insert>
+
+
+    <!-- Revoke 1 token -->
+    <update id="revokeToken" parameterType="int">
+        UPDATE user_tokens
+        SET revoked = TRUE
+        WHERE token_id = #{tokenId}
+    </update>
+
+    <!-- Revoke tất cả token của user -->
+    <update id="revokeTokensByUser" parameterType="int">
+        UPDATE user_tokens
+        SET revoked = TRUE
+        WHERE user_id = #{userId}
+    </update>
+
+    <select id="findById" resultType="UserTokens">
+        SELECT * FROM user_tokens WHERE token_id = #{tokenId}
+    </select>
+    <!-- Tìm token theo giá trị -->
+    <select id="findByToken" parameterType="string" resultType="UserTokens">
+        SELECT *
+        FROM user_tokens
+        WHERE token = #{token}
+            LIMIT 1
+    </select>
+
+<!--    tìm token bằng user_id-->
+        <select id="findTokensByUserId" resultMap="UserTokenResultMap">
+                SELECT *
+                FROM user_tokens
+                WHERE user_id = #{userId}
+                    AND revoked = false
+                ORDER BY expired_at DESC
+                LIMIT 1
+        </select>
+
+    <!-- Lấy danh sách token hợp lệ (chưa hết hạn & chưa bị revoke) -->
+    <select id="findValidTokensByUser" resultType="UserTokens">
+        SELECT *
+        FROM user_tokens
+        WHERE user_id = #{userId}
+          AND revoked = FALSE
+          AND expired_at > #{now}
+    </select>
+
+</mapper>
