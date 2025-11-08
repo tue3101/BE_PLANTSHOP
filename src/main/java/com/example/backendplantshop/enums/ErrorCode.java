@@ -6,6 +6,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum ErrorCode {
+    INTERNAL_SERVER_ERROR(500,"lỗi máy chủ"),
 
     TOKEN_HAS_EXPIRED(401,"token đã hết hạn, vui lòng đăng nhập lại!"),
     TOKEN_REVOKED(401,"token đã bị vô hiệu hóa"),

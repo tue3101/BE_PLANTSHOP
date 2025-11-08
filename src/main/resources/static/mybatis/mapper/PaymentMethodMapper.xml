@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.backendplantshop.mapper.PaymentMethodMapper">
+    <resultMap id="PaymentMethodResultMap" type="PaymentMethod">
+        <id column="method_id" property="method_id"/>
+        <result column="method_name" property="method_name"/>
+        <result column="is_deleted" property="is_deleted"/>
+    </resultMap>
+
+    <select id="findById" parameterType="int" resultMap="PaymentMethodResultMap">
+        SELECT *
+        FROM payment_method
+        WHERE method_id = #{methodID}
+        AND is_deleted = 0
+    </select>
+
+    <select id="getAll" resultMap="PaymentMethodResultMap">
+        SELECT *
+        FROM payment_method
+        WHERE is_deleted = 0
+        ORDER BY method_id
+    </select>
+</mapper>
+

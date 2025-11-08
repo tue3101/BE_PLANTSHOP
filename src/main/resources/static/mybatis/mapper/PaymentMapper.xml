@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.backendplantshop.mapper.PaymentMapper">
+    <resultMap id="PaymentResultMap" type="Payment">
+        <id column="payment_id" property="payment_id"/>
+        <result column="method_id" property="method_id"/>
+        <result column="amount" property="amount"/>
+        <result column="payment_date" property="payment_date"/>
+        <result column="status" property="status" javaType="com.example.backendplantshop.enums.PaymentStatus"/>
+        <result column="order_id" property="order_id"/>
+        <result column="is_deleted" property="is_deleted"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="Payment" useGeneratedKeys="true" keyProperty="payment_id">
+        INSERT INTO payment (method_id, amount, payment_date, status, order_id, is_deleted)
+        VALUES (#{method_id}, #{amount}, #{payment_date}, #{status}, #{order_id}, #{is_deleted})
+    </insert>
+
+    <select id="findById" parameterType="int" resultMap="PaymentResultMap">
+        SELECT *
+        FROM payment
+        WHERE payment_id = #{paymentID}
+        AND is_deleted = 0
+    </select>
+
+    <select id="findByOrderId" parameterType="int" resultMap="PaymentResultMap">
+        SELECT *
+        FROM payment
+        WHERE order_id = #{orderID}
+        AND is_deleted = 0
+        ORDER BY payment_date DESC
+    </select>
+
+    <select id="getAll" resultMap="PaymentResultMap">
+        SELECT *
+        FROM payment
+        WHERE is_deleted = 0
+        ORDER BY payment_date DESC
+    </select>
+
+    <update id="update" parameterType="Payment">
+        UPDATE payment
+        SET method_id = #{method_id},
+            amount = #{amount},
+            payment_date = #{payment_date},
+            status = #{status},
+            order_id = #{order_id}
+        WHERE payment_id = #{payment_id}
+    </update>
+
+    <update id="delete" parameterType="int">
+        UPDATE payment
+        SET is_deleted = 1
+        WHERE payment_id = #{paymentID}
+    </update>
+</mapper>
+

@@ -30,5 +30,9 @@ public class OrderDtoRequest {
     @NotEmpty(message = "Danh sách sản phẩm không được để trống")
     @Valid
     private List<OrderDetailDtoRequest> items; // Danh sách sản phẩm muốn đặt hàng
+    
+    // Thông tin thanh toán (do FE gửi)
+    @Valid
+    private PaymentDtoRequest payment; // Thông tin thanh toán (method_id, amount, status)
 }
 

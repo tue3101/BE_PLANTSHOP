@@ -33,6 +33,20 @@ google:
     client-secret: ${GOOGLE_CLIENT_SECRET}
     redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:3000/auth/google/callback}
 
+momo:
+  # Bật mock mode cho đồ án tốt nghiệp (không cần credentials thật)
+  # Đặt mock.enabled=true để dùng mock service
+  # Đặt mock.enabled=false để dùng MoMo thật (cần credentials)
+  mock:
+    enabled: ${MOMO_MOCK_ENABLED:true}
+  partner-code: ${MOMO_PARTNER_CODE:}
+  access-key: ${MOMO_ACCESS_KEY:}
+  secret-key: ${MOMO_SECRET_KEY:}
+  api-endpoint: ${MOMO_API_ENDPOINT:https://test-payment.momo.vn/v2/gateway/api/create}
+  return-url: ${MOMO_RETURN_URL:http://localhost:3000/payment/return}
+  notify-url: ${MOMO_NOTIFY_URL:http://localhost:1234/api/payments/momo/callback}
+  request-type: ${MOMO_REQUEST_TYPE:captureWallet}
+
 mybatis:
   #link đến file config xml
   config-location: classpath:/static/mybatis/mybatis-config.xml

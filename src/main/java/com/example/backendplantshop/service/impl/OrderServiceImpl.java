@@ -1,11 +1,15 @@
 package com.example.backendplantshop.service.impl;
 
 import com.example.backendplantshop.convert.OrderConvert;
+import com.example.backendplantshop.convert.PaymentConvert;
 import com.example.backendplantshop.dto.request.OrderDtoRequest;
 import com.example.backendplantshop.dto.request.OrderDetailDtoRequest;
+import com.example.backendplantshop.dto.request.PaymentDtoRequest;
 import com.example.backendplantshop.dto.request.UpdateOrderStatusDtoRequest;
 import com.example.backendplantshop.dto.response.OrderDetailDtoResponse;
 import com.example.backendplantshop.dto.response.OrderDtoResponse;
+import com.example.backendplantshop.entity.Payment;
+import com.example.backendplantshop.enums.PaymentStatus;
 import com.example.backendplantshop.entity.Discounts;
 import com.example.backendplantshop.entity.OrderDetails;
 import com.example.backendplantshop.entity.Orders;
@@ -38,6 +42,9 @@ public class OrderServiceImpl implements OrderService {
     private final CartDetailMapper cartDetailMapper;
     private final CartMapper cartMapper;
     private final AuthServiceImpl authService;
+    private final com.example.backendplantshop.mapper.PaymentMapper paymentMapper;
+    private final com.example.backendplantshop.mapper.PaymentMethodMapper paymentMethodMapper;
+    private final com.example.backendplantshop.service.intf.PaymentService paymentService;
 
     @Override
     @Transactional
@@ -133,7 +140,30 @@ public class OrderServiceImpl implements OrderService {
             orderDetailDtos.add(orderDetailDto);
         }
 
-        // 8. Xóa mềm các sản phẩm đã selected (selected = 1) trong giỏ hàng sau khi tạo đơn hàng thành công
+        // 8. Tạo Payment nếu FE gửi thông tin thanh toán
+        if (orderRequest.getPayment() != null) {
+            try {
+                PaymentDtoRequest paymentRequest = orderRequest.getPayment();
+                
+                // Validate payment method
+                com.example.backendplantshop.entity.PaymentMethod paymentMethod = 
+                    paymentMethodMapper.findById(paymentRequest.getMethod_id());
+                if (paymentMethod == null) {
+                    throw new AppException(ErrorCode.LIST_NOT_FOUND);
+                }
+                
+                // Tạo payment
+                Payment payment = PaymentConvert.convertPaymentDtoRequestToPayment(
+                    paymentRequest, order.getOrder_id(), now);
+                paymentMapper.insert(payment);
+                log.info("Đã tạo payment với ID: {} cho order ID: {}", payment.getPayment_id(), order.getOrder_id());
+            } catch (Exception e) {
+                log.error("Lỗi khi tạo payment cho order {}: {}", order.getOrder_id(), e.getMessage(), e);
+                // Không throw exception để không rollback order, chỉ log lỗi
+            }
+        }
+
+        // 9. Xóa mềm các sản phẩm đã selected (selected = 1) trong giỏ hàng sau khi tạo đơn hàng thành công
         try {
             cartDetailMapper.deleteSelectedProductsByUserId(currentUserId);
             log.info("Đã xóa mềm các sản phẩm đã selected trong giỏ hàng của user {}", currentUserId);
@@ -141,7 +171,7 @@ public class OrderServiceImpl implements OrderService {
             log.warn("Không thể xóa sản phẩm đã selected khỏi giỏ hàng của user {}: {}", currentUserId, e.getMessage());
         }
 
-        // 9. Tạo response
+        // 10. Tạo response
         OrderDtoResponse response = OrderConvert.convertOrderToOrderDtoResponse(order, orderDetailsList);
         response.setOrder_details(orderDetailDtos);
         return response;
@@ -284,6 +314,17 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(request.getStatus());
         order.setUpdated_at(LocalDateTime.now());
         orderMapper.update(order);
+
+        // Nếu hủy đơn (CANCELLED), cập nhật payment status thành FAILED
+        if (request.getStatus() == OrderSatus.CANCELLED) {
+            try {
+                paymentService.updatePaymentsByOrderId(orderId, PaymentStatus.FAILED);
+                log.info("Đã cập nhật tất cả payments của order {} thành FAILED khi hủy đơn", orderId);
+            } catch (Exception e) {
+                log.warn("Không thể cập nhật payment khi hủy đơn {}: {}", orderId, e.getMessage());
+                // Không throw exception để không rollback order cancellation
+            }
+        }
 
         // Lấy order details để trả về
         List<OrderDetails> orderDetails = orderDetailMapper.findByOrderId(orderId);
