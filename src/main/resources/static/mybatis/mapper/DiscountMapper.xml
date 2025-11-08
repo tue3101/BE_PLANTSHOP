@@ -21,13 +21,19 @@
         SELECT *
         FROM discounts
         WHERE discount_id = #{discountID}
-        AND is_deleted = false
+        AND is_deleted = 0
     </select>
 
     <select id="getAll" resultMap="DiscountResultMap">
         SELECT *
         FROM discounts
-        WHERE is_deleted = false
+        WHERE is_deleted = 0
+    </select>
+
+    <select id="getAllDiscountDeleted" resultMap="DiscountResultMap">
+        SELECT *
+        FROM discounts
+        WHERE is_deleted = 1
     </select>
 
     <insert id="insert">
@@ -64,21 +70,20 @@
 
 
 
-    <select id="findByDiscountCodeOrName" resultMap="DiscountResultMap">
-        SELECT discount_id
-            ,discount_code
-             ,discount_name
-             ,value
-             ,type
-             ,quantity
-            ,updated_at
-            ,created_at
-
+    
+    
+    <select id="findByDiscountCode" resultMap="DiscountResultMap">
+        SELECT *
         FROM discounts
         WHERE discount_code = #{discountCode}
-        OR discount_name = #{discountName}
-        AND is_deleted = false
-        LIMIT 1
+
+    </select>
+    
+    <select id="findByDiscountName" resultMap="DiscountResultMap">
+        SELECT *
+        FROM discounts
+        WHERE discount_name = #{discountName}
+
     </select>
 
 
@@ -94,5 +99,6 @@
         SET is_deleted = 0,
             updated_at = CURRENT_TIMESTAMP
         WHERE discount_id = #{discountID}
+        AND is_deleted = 1
     </update>
 </mapper>

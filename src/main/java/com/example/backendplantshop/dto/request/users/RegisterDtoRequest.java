@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 public class RegisterDtoRequest {
     @NotBlank(message = "username không được bỏ trống")
     private String username;
+    @NotBlank(message = "username không được bỏ trống")
     private String email;
     @Size(min = 8, max = 20, message = "Mật khẩu phải tối thiểu 8 kí tự!")
     private String password;

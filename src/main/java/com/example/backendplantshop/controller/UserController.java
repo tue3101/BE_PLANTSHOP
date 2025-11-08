@@ -41,6 +41,16 @@ public class UserController {
                 .build();
     }
 
+    @GetMapping("/getall-deleted")
+    ApiResponse<List<UserDtoResponse>> getAllUserDeleted() {
+        return ApiResponse.<List<UserDtoResponse>>builder()
+                .statusCode(ErrorCode.CALL_API_SUCCESSFULL.getCode())
+                .success(Boolean.TRUE)
+                .message(ErrorCode.CALL_API_SUCCESSFULL.getMessage())
+                .data(userService.findAllUserDeleted())
+                .build();
+    }
+
     @DeleteMapping("/delete/{id}")
     ApiResponse<Void> delete(@PathVariable("id") int id) {
         userService.delete(id);

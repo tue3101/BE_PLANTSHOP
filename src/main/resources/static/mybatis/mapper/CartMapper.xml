@@ -30,13 +30,10 @@
 
 
     <select id="findCartByUserId" parameterType="int" resultMap="CartResultMap">
-        SELECT
-            c.cart_id,
-            c.user_id,
-            c.is_deleted
-        FROM carts c
-        WHERE c.user_id = #{userID}
-          AND c.is_deleted = false
+        SELECT *
+        FROM carts
+        WHERE user_id = #{userID}
+          AND is_deleted = 0
         LIMIT 1
     </select>
     <!-- Tìm cart_id theo user_id -->
@@ -59,11 +56,13 @@
     UPDATE carts 
     SET is_deleted = 1 
     WHERE user_id = #{userID}
+    AND is_deleted = 0
 </delete>
     <update id="restoreByUserId" parameterType="int">
         UPDATE carts
         SET is_deleted = 0
         WHERE user_id = #{userID}
+        AND is_deleted = 1
     </update>
 
 </mapper>

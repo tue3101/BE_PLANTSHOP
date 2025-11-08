@@ -17,7 +17,6 @@ public class UserConvert {
                 .email(dto.getEmail())
                 .password(passwordEncoder.encode(dto.getPassword()))
                 .username(dto.getUsername())
-                // luôn mặc định USER khi đăng ký, bỏ qua input role nếu có
                 .role("USER")
                 .is_deleted(false)
                 .build();
@@ -56,7 +55,6 @@ public class UserConvert {
                 .username(request.getUsername() != null ? request.getUsername() : existingUser.getUsername())
                 .phone_number(request.getPhone_number() != null ? request.getPhone_number() : existingUser.getPhone_number())
                 .address(request.getAddress() != null ? request.getAddress() : existingUser.getAddress())
-                // chỉ cập nhật role khi request cung cấp giá trị (đã chuẩn hóa rỗng->null)
                 .role(request.getRole() != null ? request.getRole() : existingUser.getRole())
                 .updated_at(LocalDateTime.now())
                 .created_at(existingUser.getCreated_at())

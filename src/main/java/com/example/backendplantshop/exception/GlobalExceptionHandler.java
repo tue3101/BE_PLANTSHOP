@@ -133,13 +133,30 @@ public class GlobalExceptionHandler {
     }
 
 
-    //bắt lỗi độ dài pass
+    //bắt lỗi validation (@NotBlank, @NotNull, @Size, ...)
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<?> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiResponse> handleValidationExceptions(MethodArgumentNotValidException ex, HttpServletRequest request) {
+        logError(ex, request);
+        
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getFieldErrors().forEach(error ->
                 errors.put(error.getField(), error.getDefaultMessage())
         );
-        return ResponseEntity.badRequest().body(errors);
+        
+        // Lấy message đầu tiên hoặc message tổng hợp
+        String firstErrorMessage = ex.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(error -> error.getDefaultMessage())
+                .orElse("Validation failed");
+        
+        // Trả về format ApiResponse nhất quán
+        return ResponseEntity.badRequest().body(
+                ApiResponse.builder()
+                        .statusCode(ErrorCode.MISSING_REQUIRED_FIELD.getCode())
+                        .success(Boolean.FALSE)
+                        .message(firstErrorMessage)
+                        .data(errors) // Trả về map các lỗi chi tiết
+                        .build()
+        );
     }
 }

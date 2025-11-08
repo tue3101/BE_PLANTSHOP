@@ -13,8 +13,10 @@ public interface DiscountMapper {
     public int insert(Discounts discount);
     public int update(Discounts discount);
     public int delete(@Param("discountID") int id);
-    public Discounts findByDiscountCodeOrName(@Param("discountCode") String discountCode, @Param("discountName") String discountName);
+    Discounts findByDiscountCode(@Param("discountCode") String discountCode);
+    Discounts findByDiscountName(@Param("discountName") String discountName);
 
+    List<Discounts> getAllDiscountDeleted();
     Discounts findByIdDeleted(@Param("discountID")int id);
     void restoreDiscount(@Param("discountID")int id);
 

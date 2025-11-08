@@ -8,13 +8,15 @@ import java.util.List;
 
 @Mapper
 public interface ProductMapper {
-    public Products findById(@Param("productID") int id);
-    public List<Products> getAll();
-    public Products findByProductNameAndSize(@Param("productName") String productName, @Param("size") String size, @Param("categoryId") int categoryId);
-    public int insert(Products products);
-    public int update(Products products);
-    public int delete(@Param("productID") int id);
+    Products findById(@Param("productID") int id);
+     List<Products> getAll();
+     Products findByProductNameAndSize(@Param("productName") String productName, @Param("size") String size, @Param("categoryId") int categoryId);
+     int insert(Products products);
+    int update(Products products);
+     int delete(@Param("productID") int id);
 
+
+     List<Products> getAllProductDeleted();
     Products findByIdDeleted(@Param("productID")int id);
     void restoreProduct(@Param("productID")int id);
 }

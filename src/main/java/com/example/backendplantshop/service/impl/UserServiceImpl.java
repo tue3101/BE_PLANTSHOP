@@ -30,12 +30,11 @@ public class UserServiceImpl implements UserService {
 
 
     private String clean(String input) {
-        return (input != null && !input.trim().isEmpty()) ? input : null;
+        return input != null  ? input : null;
     }
 
 
     public UserDtoResponse findById(int id) {
-        // Chỉ ADMIN hoặc user login
         int currentUserId = authService.getCurrentUserId();
         String role = authService.getCurrentRole();
         if (!authService.isAdmin(role) && currentUserId != id) {
@@ -50,7 +49,6 @@ public class UserServiceImpl implements UserService {
 
 
     public List<UserDtoResponse> findAllUsers() {
-        // Chỉ ADMIN mới được xem danh sách
         if (!authService.isAdmin(authService.getCurrentRole())) {
             throw new AppException(ErrorCode.ACCESS_DENIED);
         }
@@ -62,12 +60,12 @@ public class UserServiceImpl implements UserService {
     }
 
 public LoginDtoResponse update(int id, UserDtoRequest userDtoRequest) {
-    // Chỉ ADMIN hoặc chính chủ mới được sửa
     int currentUserId = authService.getCurrentUserId();
     String role = authService.getCurrentRole();
     if (!authService.isAdmin(role) && currentUserId != id) {
         throw new AppException(ErrorCode.ACCESS_DENIED);
     }
+
     Users existingUser = userMapper.findById(id);
     if (existingUser == null) {
         throw new AppException(ErrorCode.USER_NOT_EXISTS);
@@ -93,54 +91,41 @@ public LoginDtoResponse update(int id, UserDtoRequest userDtoRequest) {
         throw new AppException(ErrorCode.USERNAME_ALREADY_EXISTS);
     }
 
-    // Kiểm tra role change TRƯỚC khi update database
+    // Kiểm tra role thay đổi và bởi ai
     boolean roleChanged = userDtoRequest.getRole() != null && 
                          !userDtoRequest.getRole().equals(existingUser.getRole());
-    
     if (roleChanged) {
         if (!authService.isAdmin(role)) {
             throw new AppException(ErrorCode.ACCESS_DENIED);
         }
-        // ADMIN đổi role thì update bình thường
     }
     
     
     userMapper.update(UserConvert.toUpdatedUser(id, userDtoRequest, existingUser));
 
     if (roleChanged) {
-        // Revoke tất cả token của user để logout ngay lập tức
         userTokenService.revokeTokensByUser(id);
-        
-        // Log thông tin để tracking
-        log.info("User {} role changed from {} to {} by admin {}. All tokens revoked.", 
-                id, existingUser.getRole(), userDtoRequest.getRole(), currentUserId);
     }
 
-    return null; // không đổi role thì không trả token
+    return null;
 }
 
     public void delete(int id) {
-        // Chỉ ADMIN được xoá
         if (!authService.isAdmin(authService.getCurrentRole())) {
             throw new AppException(ErrorCode.ACCESS_DENIED);
         }
         if(userMapper.findById(id) == null){
             throw new AppException(ErrorCode.USER_NOT_EXISTS);
         }
-        // 1. Xóa cart_details trước
-    cartDetailMapper.deleteByUserId(id);
-    
-    // 2. Xóa cart
-    cartMapper.deleteByUserId(id);
-
-    userTokenMapper.revokeTokensByUser(id);
+        cartDetailMapper.deleteByUserId(id);
+        cartMapper.deleteByUserId(id);
+        userTokenMapper.revokeTokensByUser(id);
         userMapper.delete(id);
     }
 
     public UserDtoResponse getUser(String authHeader, Integer id) {
         int currentUserId = authService.getCurrentUserId();
         String role = authService.getCurrentRole();
-        log.info(">>> Authorization header: {}", authHeader);
 
         int targetUserId = (id != null) ? id : currentUserId;
 
@@ -162,6 +147,17 @@ public LoginDtoResponse update(int id, UserDtoRequest userDtoRequest) {
         cartMapper.restoreByUserId(id);
         cartDetailMapper.restoreByUserId(id);
         userMapper.restoreUser(id);
+    }
+
+    public List<UserDtoResponse> findAllUserDeleted() {
+        if (!authService.isAdmin(authService.getCurrentRole())) {
+            throw new AppException(ErrorCode.ACCESS_DENIED);
+        }
+        var users = UserConvert.convertListUserToListUserDtoResponse(userMapper.findAllUserDeleted());
+        if (users == null) {
+            throw  new AppException(ErrorCode.LIST_NOT_FOUND);
+        }
+        return users;
     }
 
 

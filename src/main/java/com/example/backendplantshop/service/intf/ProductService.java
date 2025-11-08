@@ -12,8 +12,8 @@ public interface ProductService {
     List<ProductDtoResponse> getAllProducts();
     void insert(ProductDtoRequest productRequest, MultipartFile image) throws IOException;
     void update(int id, ProductDtoRequest productRequest, MultipartFile image) throws IOException;
-//    void updateWithImage(int id, ProductDtoRequest productRequest, MultipartFile image) throws IOException;
     void delete(int id);
     void restoreProduct(int id);
+    List<ProductDtoResponse> getAllProductDeleted();
 
 }

@@ -16,10 +16,10 @@ public interface CartDetailService {
     // Cập nhật số lượng, selected trực tiếp
     void updateQuantity(int userId, int productId, int newQuantity, Boolean selected, String authHeader);
 
-    // Tăng số lượng lên 1
-    void increaseQuantity(int userId, int productId, String authHeader);
-
-    // Giảm số lượng xuống 1
-    void decreaseQuantity(int userId, int productId, String authHeader);
+//    // Tăng số lượng lên 1
+//    void increaseQuantity(int userId, int productId, String authHeader);
+//
+//    // Giảm số lượng xuống 1
+//    void decreaseQuantity(int userId, int productId, String authHeader);
     void removeProductFromCart(int userId, int productId, String authHeader);
 }

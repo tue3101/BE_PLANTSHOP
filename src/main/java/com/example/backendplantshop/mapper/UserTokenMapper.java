@@ -11,19 +11,19 @@ import java.util.List;
 public interface UserTokenMapper {
     void insertToken(UserTokens token);
 
-    void revokeToken(@Param("tokenId") int tokenId);
+//    void revokeToken(@Param("tokenId") int tokenId);
 
     void revokeTokensByUser(@Param("userId") int userId);
 
 
-    UserTokens findByToken(@Param("token") String token);
-
-    UserTokens findById(@Param("tokenId") int tokenId); // 🔥 thêm mới
+//    UserTokens findByToken(@Param("token") String token);
+//
+//    UserTokens findById(@Param("tokenId") int tokenId);
     UserTokens findTokensByUserId( @Param("userId") int userId);
 
-
-    List<UserTokens> findValidTokensByUser(@Param("userId") int userId,
-                                           @Param("now") LocalDateTime now);
+//
+//    List<UserTokens> findValidTokensByUser(@Param("userId") int userId,
+//                                           @Param("now") LocalDateTime now);
     
                                            
 

@@ -58,30 +58,30 @@ public class CartDetailController {
     }
 
     // Tăng số lượng lên 1
-    @PutMapping("/increase-quantity/{userId}/{productId}")
-    public ApiResponse<Void> increaseQuantity(@PathVariable("userId") int userId,
-                          @PathVariable("productId") int productId,
-                          @RequestHeader("Authorization") String authHeader) {
-    cartDetailService.increaseQuantity(userId, productId, authHeader);
-    return ApiResponse.<Void>builder()
-        .statusCode(ErrorCode.UPDATE_SUCCESSFULL.getCode())
-        .success(Boolean.TRUE)
-        .message("Tăng số lượng thành công")
-        .build();
-    }
-
-    // Giảm số lượng xuống 1
-    @PutMapping("/decrease-quantity/{userId}/{productId}")
-    public ApiResponse<Void> decreaseQuantity(@PathVariable("userId") int userId,
-                          @PathVariable("productId") int productId,
-                          @RequestHeader("Authorization") String authHeader) {
-    cartDetailService.decreaseQuantity(userId, productId, authHeader);
-    return ApiResponse.<Void>builder()
-        .statusCode(ErrorCode.UPDATE_SUCCESSFULL.getCode())
-        .success(Boolean.TRUE)
-        .message("Giảm số lượng thành công")
-        .build();
-    }
+//    @PutMapping("/increase-quantity/{userId}/{productId}")
+//    public ApiResponse<Void> increaseQuantity(@PathVariable("userId") int userId,
+//                          @PathVariable("productId") int productId,
+//                          @RequestHeader("Authorization") String authHeader) {
+//    cartDetailService.increaseQuantity(userId, productId, authHeader);
+//    return ApiResponse.<Void>builder()
+//        .statusCode(ErrorCode.UPDATE_SUCCESSFULL.getCode())
+//        .success(Boolean.TRUE)
+//        .message("Tăng số lượng thành công")
+//        .build();
+//    }
+//
+//    // Giảm số lượng xuống 1
+//    @PutMapping("/decrease-quantity/{userId}/{productId}")
+//    public ApiResponse<Void> decreaseQuantity(@PathVariable("userId") int userId,
+//                          @PathVariable("productId") int productId,
+//                          @RequestHeader("Authorization") String authHeader) {
+//    cartDetailService.decreaseQuantity(userId, productId, authHeader);
+//    return ApiResponse.<Void>builder()
+//        .statusCode(ErrorCode.UPDATE_SUCCESSFULL.getCode())
+//        .success(Boolean.TRUE)
+//        .message("Giảm số lượng thành công")
+//        .build();
+//    }
 
     
     // Xóa sản phẩm khỏi giỏ hàng (soft delete)

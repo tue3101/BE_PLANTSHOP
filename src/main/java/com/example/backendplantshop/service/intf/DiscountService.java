@@ -12,6 +12,7 @@ public interface DiscountService {
     void update(int id, DiscountDtoRequest discountRequest);
     void delete(int id);
 
+    List<DiscountDtoResponse> getAllDiscountDeleted();
     void restoreDiscount(int id);
 
 }

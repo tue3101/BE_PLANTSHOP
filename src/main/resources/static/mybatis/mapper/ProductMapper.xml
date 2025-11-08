@@ -21,58 +21,32 @@
     <!-- Các phần tử SQL-->
 
     <select id="findById" resultMap="ProductResultMap" parameterType="integer">
-        select p.product_id
-             ,p.product_name
-             ,p.description
-             ,p.img_url
-             ,p.price
-             ,p.quantity
-             ,p.size
-             ,p.out_of_stock
-             ,p.created_at
-             ,p.updated_at
-             ,p.is_deleted
-             ,p.category_id
-        from products p
-        where p.product_id = #{productID}
-          AND is_deleted = false
+        SELECT *
+        FROM products
+        WHERE product_id = #{productID}
+          AND is_deleted = 0
     </select>
 
     <select id="findByProductNameAndSize" resultMap="ProductResultMap">
-        select p.product_id
-             ,p.product_name
-             ,p.description
-             ,p.img_url
-             ,p.price
-             ,p.quantity
-             ,p.size
-             ,p.out_of_stock
-             ,p.created_at
-             ,p.updated_at
-             ,p.is_deleted
-             ,p.category_id
-        from products p
-        where p.product_name = #{productName}
-          and p.size = #{size}
-          and p.category_id = #{categoryId}
-          and p.is_deleted = false
+        SELECT *
+        FROM products
+        WHERE product_name = #{productName}
+          AND size = #{size}
+          AND category_id = #{categoryId}
+        ORDER BY is_deleted DESC
+        LIMIT 1
     </select>
 
     <select id="getAll" resultMap="ProductResultMap">
-        SELECT product_id
-             , product_name
-             , description
-             , img_url
-             , price
-             , quantity
-             , size
-             , out_of_stock
-             , created_at
-             , updated_at
-             , is_deleted
-             , category_id
+        SELECT *
         FROM products
-        WHERE is_deleted=false
+        WHERE is_deleted = 0
+    </select>
+
+    <select id="getAllProductDeleted" resultMap="ProductResultMap">
+        SELECT *
+        FROM products
+        WHERE is_deleted = 1
     </select>
 
     <insert id="insert" parameterType="Products">
@@ -123,13 +97,14 @@
         SELECT *
         FROM products
         WHERE product_id = #{productID}
-          AND is_deleted = true
+          AND is_deleted = 1
     </select>
     <update id="restoreProduct" parameterType="int">
         UPDATE products
         SET is_deleted = 0,
             updated_at = CURRENT_TIMESTAMP
         WHERE product_id = #{productID}
+        AND is_deleted = 1
     </update>
 
 </mapper>

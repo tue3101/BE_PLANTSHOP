@@ -22,7 +22,6 @@ public class CartServiceImpl implements CartService {
             throw new AppException(ErrorCode.ACCESS_DENIED);
         }
 
-        // Tìm giỏ hàng của user
         Carts cart = cartMapper.findCartByUserId(userId);
         if (cart == null) {
             throw new AppException(ErrorCode.CART_IS_EMPTY);

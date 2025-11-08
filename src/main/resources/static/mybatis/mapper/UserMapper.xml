@@ -17,40 +17,48 @@
         <result column="updated_at" property="updated_at"/>
         <result column="is_deleted" property="is_deleted"/>
 
-        <collection property="user_tokens" ofType="UserTokens" column="user_id"
-                    select="com.example.backendplantshop.mapper.UserTokenMapper.findTokensByUserId"/>
+<!--        <collection property="user_tokens" ofType="UserTokens" column="user_id"-->
+<!--                    select="com.example.backendplantshop.mapper.UserTokenMapper.findTokensByUserId"/>-->
     </resultMap>
-    <!-- Các phần tử SQL-->
-
     <select id="findById" resultMap="UserResultMap" parameterType="integer">
         SELECT *
         FROM users
         WHERE user_id = #{userID}
-          AND is_deleted = false
+          AND is_deleted = 0
     </select>
 
     <select id="findByEmail" resultMap="UserResultMap">
         SELECT * FROM users
         WHERE email = #{email}
-        AND is_deleted = false
+        AND is_deleted = 0
     </select>
 
     <select id="findByPhoneNumber" resultMap="UserResultMap">
         SELECT * FROM users
         WHERE phone_number = #{phone_number}
-        AND is_deleted = false
+        AND is_deleted = 0
     </select>
 
     <select id="findByUsername" resultMap="UserResultMap">
         SELECT * FROM users
         WHERE username = #{username}
-          AND is_deleted = false
+          AND is_deleted = 0
     </select>
 
     <select id="findByGoogleId" resultMap="UserResultMap">
         SELECT * FROM users
         WHERE google_id = #{googleId}
-        AND is_deleted = false
+        AND is_deleted = 0
+    </select>
+    
+    <select id="findByEmailIgnoreDeleted" resultMap="UserResultMap">
+        SELECT * FROM users
+        WHERE email = #{email}
+    </select>
+    
+    <select id="findByGoogleIdIgnoreDeleted" resultMap="UserResultMap">
+        SELECT * FROM users
+        WHERE google_id = #{googleId}
     </select>
     
     <select id="findAll" resultMap="UserResultMap">
@@ -61,10 +69,21 @@
                 , address
                 , role
         FROM users
-        WHERE is_deleted = false
+        WHERE is_deleted = 0
     </select>
 
-    <insert id="insert" parameterType="Users">
+    <select id="findAllUserDeleted" resultMap="UserResultMap">
+        SELECT user_id
+             , email
+             , username
+             , phone_number
+             , address
+             , role
+        FROM users
+        WHERE is_deleted = 1
+    </select>
+
+    <insert id="insert" parameterType="Users" useGeneratedKeys="true" keyProperty="user_id" keyColumn="user_id">
         INSERT INTO users(
             email
             , password
@@ -95,10 +114,11 @@
 
     <delete id="delete" parameterType="integer">
         UPDATE users
-        SET is_deleted = 1
+        SET is_deleted = 1,
+            updated_at = CURRENT_TIMESTAMP
         WHERE user_id = #{userID}
+        AND is_deleted = 0
     </delete>
-
 
 
 
@@ -106,13 +126,15 @@
         SELECT *
         FROM users
         WHERE user_id = #{userID}
-          AND is_deleted = true
+          AND is_deleted = 1
     </select>
-    <update id="restoreUser" parameterType="int">
+
+    <update id="restoreUser" parameterType="integer">
         UPDATE users
         SET is_deleted = 0,
             updated_at = CURRENT_TIMESTAMP
         WHERE user_id = #{userID}
+        AND is_deleted = 1
     </update>
 
     <update id="changePassword" >
@@ -120,7 +142,7 @@
         SET password = #{newPassword}
             ,updated_at=CURRENT_TIMESTAMP
         WHERE user_id=#{userID}
-        AND is_deleted=false
+        AND is_deleted = 0
     </update>
 
 

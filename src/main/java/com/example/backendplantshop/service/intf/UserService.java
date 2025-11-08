@@ -14,5 +14,6 @@ public interface UserService {
     void delete(int id);
     UserDtoResponse getUser(String authHeader, Integer id);
     void restoreUser(int id);
+    List<UserDtoResponse> findAllUserDeleted();
 
 }

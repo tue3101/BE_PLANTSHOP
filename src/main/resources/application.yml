@@ -42,8 +42,11 @@ mybatis:
 server:
   port: 1234
 
-#logging:
-#  level:
-#    com.example.backendplantshop: DEBUG
-#    root: DEBUG
+logging:
+  level:
+    # Bỏ comment dòng dưới nếu muốn xem SQL queries (DEBUG mode)
+    # com.example.backendplantshop.mapper: DEBUG
+    # org.springframework.jdbc: DEBUG
+    root: INFO
+    com.example.backendplantshop: INFO
 

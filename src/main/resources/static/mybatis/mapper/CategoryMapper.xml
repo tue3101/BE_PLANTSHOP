@@ -33,7 +33,7 @@
         SELECT *
         FROM category
         WHERE category_id = #{categoryID}
-        AND is_deleted = false
+        AND is_deleted = 0
     </select>
 
     <select id="findProductByCategory" resultMap="CategoryResultMap">
@@ -50,14 +50,20 @@
                 , p.updated_at
                 , p.is_deleted
         FROM category c
-        LEFT JOIN products p ON p.category_id = c.category_id AND p.is_deleted = false
-        WHERE c.category_id = #{categoryID} AND c.is_deleted = false
+        LEFT JOIN products p ON p.category_id = c.category_id AND p.is_deleted = 0
+        WHERE c.category_id = #{categoryID} AND c.is_deleted = 0
     </select>
 
     <select id="getAll" resultMap="CategoryResultMap">
         SELECT *
         FROM category
-        WHERE is_deleted = false
+        WHERE is_deleted = 0
+    </select>
+
+    <select id="getAllCategoryDeleted" resultMap="CategoryResultMap">
+        SELECT *
+        FROM category
+        WHERE is_deleted = 1
     </select>
 
     <insert id="insert" parameterType="Category">
@@ -71,13 +77,13 @@
     <update id="update" parameterType="Category">
         UPDATE category
         SET category_name = #{category_name}
-            , is_deleted = #{is_deleted}
         WHERE category_id = #{category_id}
     </update>
     <delete id="delete" parameterType="int">
         UPDATE category
         SET is_deleted = 1
         WHERE category_id = #{categoryID}
+        AND is_deleted = 0
     </delete>
 
 
@@ -85,7 +91,13 @@
         SELECT *
         FROM category
         WHERE category_name = #{categoryName}
-        AND is_deleted = false
+        AND is_deleted = 0
+    </select>
+    
+    <select id="findByNameIgnoreDeleted" resultMap="CategoryResultMap">
+        SELECT *
+        FROM category
+        WHERE category_name = #{categoryName}
     </select>
 
 
@@ -93,20 +105,22 @@
         SELECT *
         FROM category
         WHERE category_id = #{categoryID}
-          AND is_deleted = true
+          AND is_deleted = 1
     </select>
+
     <!-- Đếm số sản phẩm trong danh mục -->
     <select id="countProductsByCategory" parameterType="int" resultType="int">
         SELECT COUNT(*)
         FROM products
         WHERE category_id = #{categoryID}
-          AND is_deleted = false
+          AND is_deleted = 0
     </select>
     <update id="restoreCategory" parameterType="int">
         UPDATE category
         SET is_deleted = 0,
             updated_at = CURRENT_TIMESTAMP
         WHERE category_id = #{categoryID}
+        AND is_deleted = 1
     </update>
 
 </mapper>

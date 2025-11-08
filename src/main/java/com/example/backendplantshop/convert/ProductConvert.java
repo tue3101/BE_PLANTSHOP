@@ -47,19 +47,35 @@ public class ProductConvert {
     public static Products toUpdatedProducts(int id, ProductDtoRequest request, Products existingProduct) {
         return Products.builder()
                 .product_id(id)
-                .product_name(request.getProduct_name())
-                .description(request.getDescription())
-                .price(request.getPrice())
-                .quantity(request.getQuantity())
-                .size(request.getSize())
-                .out_of_stock(request.getOut_of_stock())
-                .img_url(existingProduct.getImg_url()) // Giữ nguyên ảnh cũ
-                .category_id(request.getCategory_id())
+                .product_name(request.getProduct_name()  != null ? request.getProduct_name() :existingProduct.getProduct_name())
+                .description(request.getDescription() != null ? request.getDescription() :existingProduct.getDescription() )
+                .price(request.getPrice() != null ? request.getPrice() :existingProduct.getPrice())
+                .quantity(request.getQuantity() != null ? request.getQuantity() : existingProduct.getQuantity())
+                .size(request.getSize()  != null ? request.getSize() : existingProduct.getSize())
+                .out_of_stock(request.getOut_of_stock() != null ? request.getOut_of_stock() : existingProduct.isOut_of_stock())
+                .img_url(existingProduct.getImg_url() != null ? request.getImg_url() : existingProduct.getImg_url()) // Giữ nguyên ảnh cũ
+                .category_id(request.getCategory_id() != null ? request.getCategory_id() : existingProduct.getCategory_id())
                 .created_at(existingProduct.getCreated_at()) // Giữ nguyên ngày tạo
                 .updated_at(LocalDateTime.now()) // Cập nhật ngày sửa
                 .is_deleted(existingProduct.is_deleted())
                 .build();
     }
 
+    // Phương thức restore và update product với dữ liệu mới
+    public static Products toRestoreProduct(Products existingProduct, ProductDtoRequest request, String imgUrl) {
+        return Products.builder()
+                .product_id(existingProduct.getProduct_id())
+                .product_name(request.getProduct_name())
+                .description(request.getDescription())
+                .price(request.getPrice())
+                .quantity(request.getQuantity())
+                .size(request.getSize())
+                .out_of_stock(request.getOut_of_stock())
+                .img_url(imgUrl)
+                .category_id(request.getCategory_id())
+                .created_at(existingProduct.getCreated_at()) // Giữ nguyên ngày tạo
+                .is_deleted(false) // Restore product
+                .build();
+    }
 
 }

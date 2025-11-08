@@ -42,6 +42,18 @@ public class DiscountController {
 
     }
 
+    @GetMapping("/getall-deleted")
+    public ApiResponse<List<DiscountDtoResponse>> doGetAllDiscountDeleted() {
+        return ApiResponse.<List<DiscountDtoResponse>>builder()
+                .statusCode(ErrorCode.CALL_API_SUCCESSFULL.getCode())
+                .success(Boolean.TRUE)
+                .message(ErrorCode.CALL_API_SUCCESSFULL.getMessage())
+                .data(discountService.getAllDiscountDeleted())
+                .build();
+
+
+    }
+
     @PostMapping("/add")
     public ApiResponse<Void> doInsertDiscount(@Valid @RequestBody DiscountDtoRequest discountRequest) {
 

@@ -83,10 +83,17 @@ public class AuthServiceImpl implements AuthenticationService {
         // Làm sạch dữ liệu: nếu email hoặc phone_number là chuỗi rỗng hoặc chỉ chứa khoảng trắng thì gán null
         registerDtoRequest.setEmail(clean(registerDtoRequest.getEmail()));
 
-
-        // Kiểm tra trùng lặp - chỉ kiểm tra khi có giá trị
-        if (userMapper.findByEmail(registerDtoRequest.getEmail()) != null) {
-            throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
+        // Kiểm tra email
+        Users existingUserByEmail = userMapper.findByEmailIgnoreDeleted(registerDtoRequest.getEmail());
+        if (existingUserByEmail != null) {
+            // Nếu user đã tồn tại và chưa bị xóa 
+            if (existingUserByEmail.getIs_deleted() == null || !existingUserByEmail.getIs_deleted()) {
+                throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
+            }
+            // Nếu user đã tồn tại nhưng đã bị xóa mềm 
+            if (existingUserByEmail.getIs_deleted()) {
+                throw new AppException(ErrorCode.EMAIL_DISABLED_NEED_RESTORE);
+            }
         }
 
 
@@ -282,75 +289,168 @@ public class AuthServiceImpl implements AuthenticationService {
 
     @Override
     public LoginDtoResponse loginWithGoogle(GoogleLoginDtoRequest googleLoginDtoRequest) {
+        log.info("=== BẮT ĐẦU GOOGLE LOGIN ===");
+        log.info("Request: {}", googleLoginDtoRequest != null ? "not null" : "null");
+        
         if (googleLoginDtoRequest == null || googleLoginDtoRequest.getCode() == null || googleLoginDtoRequest.getCode().trim().isEmpty()) {
+            log.error("Google login request không hợp lệ: request={}, code={}", 
+                googleLoginDtoRequest != null ? "not null" : "null",
+                googleLoginDtoRequest != null ? googleLoginDtoRequest.getCode() : "null");
             throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
         }
 
         try {
+            String codePreview = googleLoginDtoRequest.getCode().length() > 10 
+                ? googleLoginDtoRequest.getCode().substring(0, 10) + "..." 
+                : googleLoginDtoRequest.getCode();
+            log.info("Bắt đầu đăng nhập Google với code: {}, redirectUri: {}", 
+                codePreview, 
+                googleLoginDtoRequest.getRedirectUri());
+            
             // Bước 1: Exchange code → access token
             // Truyền redirectUri từ request, nếu không có thì service sẽ dùng từ config
-            String accessToken = googleAuthService.exchangeCodeForAccessToken(
-                googleLoginDtoRequest.getCode(), 
-                googleLoginDtoRequest.getRedirectUri()
-            );
-            
-            if (accessToken == null || accessToken.trim().isEmpty()) {
+            String accessToken;
+            try {
+                accessToken = googleAuthService.exchangeCodeForAccessToken(
+                    googleLoginDtoRequest.getCode(), 
+                    googleLoginDtoRequest.getRedirectUri()
+                );
+            } catch (Exception e) {
+                log.error("Lỗi khi exchange code với Google: {}", e.getMessage());
                 throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
             }
+            
+            if (accessToken == null || accessToken.trim().isEmpty()) {
+                log.error("Access token từ Google là null hoặc rỗng");
+                throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
+            }
+            
+            log.info("Đã lấy được access token từ Google thành công");
 
             // Bước 2: Lấy thông tin user từ Google
-            Map<String, String> googleUserInfo = googleAuthService.getUserInfoFromGoogle(accessToken);
+            Map<String, String> googleUserInfo;
+            try {
+                googleUserInfo = googleAuthService.getUserInfoFromGoogle(accessToken);
+            } catch (Exception e) {
+                log.error("Lỗi khi lấy thông tin user từ Google: {}", e.getMessage(), e);
+                throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
+            }
+            
             String googleId = googleAuthService.getGoogleId(googleUserInfo);
             String email = googleAuthService.getEmail(googleUserInfo);
             String name = googleAuthService.getName(googleUserInfo);
+            
+            log.info("Thông tin user từ Google: email={}, googleId={}, name={}", email, googleId, name);
 
             if (email == null || email.trim().isEmpty() || googleId == null || googleId.trim().isEmpty()) {
+                log.error("Email hoặc GoogleId không hợp lệ: email={}, googleId={}", email, googleId);
                 throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
             }
 
-            // Bước 3: Tìm user theo google_id hoặc email
-            Users user = userMapper.findByGoogleId(googleId);
+            // Bước 3: Kiểm tra user đã tồn tại chưa (kể cả is_deleted = 1)
+            log.info("Bắt đầu kiểm tra user theo googleId (không quan tâm is_deleted): {}", googleId);
+            Users existingUser = null;
+            try {
+                existingUser = userMapper.findByGoogleIdIgnoreDeleted(googleId);
+                log.info("Kết quả findByGoogleIdIgnoreDeleted: {}", existingUser != null ? "found" : "not found");
+            } catch (Exception e) {
+                log.error("Lỗi khi tìm user theo googleId (ignore deleted): {}", e.getMessage(), e);
+                // Tiếp tục tìm theo email thay vì throw exception ngay
+                existingUser = null;
+            }
             
-            // Nếu không tìm thấy theo google_id, thử tìm theo email
-            if (user == null) {
-                user = userMapper.findByEmail(email);
-                
-                // Nếu tìm thấy user theo email nhưng chưa có google_id, cập nhật google_id
-                if (user != null && (user.getGoogle_id() == null || user.getGoogle_id().trim().isEmpty())) {
-                    user.setGoogle_id(googleId);
-                    userMapper.update(user);
-                    log.info("Đã cập nhật google_id cho user: {}", email);
+            // Nếu không tìm thấy theo google_id, thử tìm theo email (không quan tâm is_deleted)
+            if (existingUser == null) {
+                log.info("Không tìm thấy user theo googleId, thử tìm theo email (không quan tâm is_deleted): {}", email);
+                try {
+                    existingUser = userMapper.findByEmailIgnoreDeleted(email);
+                    log.info("Kết quả findByEmailIgnoreDeleted: {}", existingUser != null ? "found" : "not found");
+                } catch (Exception e) {
+                    log.error("Lỗi khi tìm user theo email (ignore deleted): {}", e.getMessage(), e);
+                    throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
                 }
+            }
+            
+            // Kiểm tra nếu user đã tồn tại
+            if (existingUser != null) {
+                // Kiểm tra xem user có bị xóa mềm không (is_deleted = 1)
+                if (existingUser.getIs_deleted() != null && existingUser.getIs_deleted()) {
+                    log.warn("User đã tồn tại nhưng bị vô hiệu hóa: email={}, google_id={}", email, googleId);
+                    throw new AppException(ErrorCode.ACCOUNT_DISABLED);
+                }
+                
+                // User tồn tại và chưa bị xóa, sử dụng user này
+                log.info("User đã tồn tại và chưa bị xóa: email={}, google_id={}", email, googleId);
+                Users user = existingUser;
+                
+                // Nếu user có email nhưng chưa có google_id, cập nhật google_id
+                if (user.getGoogle_id() == null || user.getGoogle_id().trim().isEmpty()) {
+                    log.info("Cập nhật google_id cho user hiện có: {}", email);
+                    try {
+                        user.setGoogle_id(googleId);
+                        userMapper.update(user);
+                        log.info("Đã cập nhật google_id cho user: {}", email);
+                    } catch (Exception e) {
+                        log.error("Lỗi khi cập nhật google_id: {}", e.getMessage(), e);
+                        throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
+                    }
+                }
+                
+                // Tiếp tục với việc tạo JWT tokens (nhảy xuống Bước 5)
+                // Bước 5: Tạo JWT tokens (giống login thường)
+                String jwtAccessToken = jwtUtil.generateAccessToken(user.getUser_id(), user.getRole());
+                String jwtRefreshToken = jwtUtil.generateRefreshToken(user.getUser_id(), user.getRole());
+
+                // Lưu refresh token vào DB
+                userTokenService.saveToken(UserTokens.builder()
+                        .user_id(user.getUser_id())
+                        .token(jwtRefreshToken)
+                        .expires_at(LocalDateTime.now().plusDays(7))
+                        .revoked(false)
+                        .build());
+
+                return LoginDtoResponse.builder()
+                        .accessToken(jwtAccessToken)
+                        .refreshToken(jwtRefreshToken)
+                        .build();
             }
 
             // Bước 4: Nếu user chưa tồn tại, tạo mới
-            if (user == null) {
-                // Tạo username từ name hoặc email nếu name không có
-                String username = (name != null && !name.trim().isEmpty()) 
-                    ? name.trim().replaceAll("\\s+", "") // Xóa khoảng trắng
-                    : email.substring(0, email.indexOf("@")); // Dùng phần trước @ của email
+            log.info("User chưa tồn tại, bắt đầu tạo user mới: email={}, google_id={}", email, googleId);
+            
+            // Tạo username từ name hoặc email nếu name không có
+            String username = (name != null && !name.trim().isEmpty()) 
+                ? name.trim().replaceAll("\\s+", "") // Xóa khoảng trắng
+                : email.substring(0, email.indexOf("@")); // Dùng phần trước @ của email
 
-                // Đảm bảo username duy nhất
-                String baseUsername = username;
-                int counter = 1;
-                while (userMapper.findByUsername(username) != null) {
-                    username = baseUsername + counter;
-                    counter++;
-                }
+            // Đảm bảo username duy nhất
+            String baseUsername = username;
+            int counter = 1;
+            while (userMapper.findByUsername(username) != null) {
+                username = baseUsername + counter;
+                counter++;
+            }
+            log.info("Username được tạo: {}", username);
 
-                // Tạo user mới với password ngẫu nhiên (user Google không cần password)
-                String randomPassword = passwordEncoder.encode(java.util.UUID.randomUUID().toString());
-                user = Users.builder()
-                        .email(email)
-                        .password(randomPassword)
-                        .username(username)
-                        .google_id(googleId)
-                        .role("USER")
-                        .is_deleted(false)
-                        .build();
+            // Tạo user mới với password ngẫu nhiên (user Google không cần password)
+            String randomPassword = passwordEncoder.encode(java.util.UUID.randomUUID().toString());
+            Users user = Users.builder()
+                    .email(email)
+                    .password(randomPassword)
+                    .username(username)
+                    .google_id(googleId)
+                    .role("USER")
+                    .is_deleted(false)
+                    .build();
 
+            log.info("Bắt đầu insert user mới vào database: email={}, google_id={}", email, googleId);
+            try {
                 userMapper.insert(user);
-                log.info("Đã tạo user mới từ Google: {} với google_id: {}", email, googleId);
+                log.info("Đã tạo user mới từ Google thành công: {} với google_id: {}", email, googleId);
+            } catch (Exception e) {
+                log.error("Lỗi khi insert user mới: {}", e.getMessage(), e);
+                log.error("SQL exception details: ", e);
+                throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
             }
 
             // Bước 5: Tạo JWT tokens (giống login thường)
@@ -373,9 +473,24 @@ public class AuthServiceImpl implements AuthenticationService {
         } catch (AppException e) {
             log.error("AppException khi đăng nhập Google: code={}, message={}", 
                 e.getErrorCode().getCode(), e.getErrorCode().getMessage());
+            log.error("Stack trace AppException: ", e);
             throw e;
         } catch (Exception e) {
-            log.error("Lỗi khi đăng nhập với Google: {}", e.getMessage(), e);
+            log.error("Exception không mong muốn khi đăng nhập với Google: {}", e.getMessage(), e);
+            log.error("Exception class: {}, cause: {}", e.getClass().getName(), e.getCause());
+            
+            // Kiểm tra xem có phải lỗi từ Google không
+            String errorMessage = e.getMessage();
+            if (errorMessage != null && errorMessage.contains("Google")) {
+                log.error("Lỗi từ Google OAuth: {}", errorMessage);
+            }
+            
+            // Log toàn bộ stack trace
+            StackTraceElement[] stackTrace = e.getStackTrace();
+            if (stackTrace.length > 0) {
+                log.error("Lỗi tại: {} - {}", stackTrace[0].getClassName(), stackTrace[0].getMethodName());
+            }
+            
             // Throw exception với message chi tiết hơn để frontend biết lỗi gì
             throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
         }

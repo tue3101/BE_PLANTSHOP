@@ -45,7 +45,7 @@ public class CategoryServiceImpl implements CategoryService {
 
         Category category = categoryMapper.findProductByCategory(id);
         
-        // Lọc bỏ các sản phẩm có product_id = 0 (sản phẩm null từ LEFT JOIN)
+        //lọc trường hợp ORM - Object–Relational Mapping tạo product rỗng khi ko có product trong category
         if (category != null && category.getProducts() != null) {
             category.getProducts().removeIf(product -> product.getProduct_id() == 0);
         }
@@ -63,16 +63,29 @@ public class CategoryServiceImpl implements CategoryService {
         if (!authService.isAdmin(role) ) {
             throw new AppException(ErrorCode.ACCESS_DENIED);
         }
-        // Validate input
+     
         if (categoryRequest.getCategory_name() == null || categoryRequest.getCategory_name().trim().isEmpty()) {
             throw new AppException(ErrorCode.NAME_EMPTY);
         }
         
-        Category existingCategory = categoryMapper.findByName(categoryRequest.getCategory_name().trim());
+        String categoryName = categoryRequest.getCategory_name().trim();
+        
+ 
+        Category existingCategory = categoryMapper.findByNameIgnoreDeleted(categoryName);
+        
         if (existingCategory != null) {
-            throw new AppException(ErrorCode.CATEGORY_ALREADY_EXITST);
+            // Nếu category đã tồn tại và chưa bị xóa
+            if (existingCategory.getIs_deleted() == null || !existingCategory.getIs_deleted()) {
+                throw new AppException(ErrorCode.CATEGORY_ALREADY_EXITST);
+            }
+            // Nếu category đã tồn tại nhưng đã bị xóa mềm 
+            if (existingCategory.getIs_deleted()) {
+                categoryMapper.restoreCategory(existingCategory.getCategory_id());
+                return;
+            }
         }
         
+        // Nếu không tìm thấy category nào → tạo mới
         categoryMapper.insert(CategoryConvert.toCategory(categoryRequest));
     }
 
@@ -81,7 +94,6 @@ public class CategoryServiceImpl implements CategoryService {
         if (!authService.isAdmin(role) ) {
             throw new AppException(ErrorCode.ACCESS_DENIED);
         }
-        // Kiểm tra category cần update có tồn tại không
         Category existingCategory = categoryMapper.findById(id);
         if (existingCategory == null) {
             throw new AppException(ErrorCode.CATEGORY_NOT_EXISTS);
@@ -110,6 +122,15 @@ public class CategoryServiceImpl implements CategoryService {
             throw new AppException(ErrorCode.CATEGORY_HAS_PRODUCTS);
         }
         categoryMapper.delete(id);
+    }
+
+    @Override
+    public List<CategoryDtoResponse> getAllCategogyDeleted() {
+        var category = CategoryConvert.convertListCategoryToListCategoryDtoResponse(categoryMapper.getAllCategoryDeleted());
+        if(category.isEmpty()){
+            throw new AppException(ErrorCode.LIST_NOT_FOUND);
+        }
+        return category;
     }
 
     @Override

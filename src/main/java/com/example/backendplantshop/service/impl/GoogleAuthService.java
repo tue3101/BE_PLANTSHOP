@@ -30,13 +30,7 @@ public class GoogleAuthService {
     private final Gson gson = new Gson();
     private final RestTemplate restTemplate = new RestTemplate();
 
-    /**
-     * Exchange authorization code lấy access token từ Google
-     * @param code Authorization code từ Google
-     * @param redirectUri Redirect URI (nếu null thì dùng từ config)
-     * @return Access token
-     * @throws Exception nếu code không hợp lệ
-     */
+
     public String exchangeCodeForAccessToken(String code, String redirectUri) throws Exception {
         try {
             String tokenUrl = "https://oauth2.googleapis.com/token";
@@ -120,12 +114,8 @@ public class GoogleAuthService {
         }
     }
 
-    /**
-     * Lấy thông tin user từ Google bằng access token
-     * @param accessToken Access token từ Google
-     * @return Map chứa thông tin user (id, email, name, etc.)
-     * @throws Exception nếu token không hợp lệ
-     */
+
+//     Lấy thông tin user từ Google bằng access token
     public Map<String, String> getUserInfoFromGoogle(String accessToken) throws Exception {
         try {
             String userInfoUrl = "https://www.googleapis.com/oauth2/v2/userinfo";
@@ -168,30 +158,17 @@ public class GoogleAuthService {
         }
     }
 
-    /**
-     * Lấy Google ID từ user info
-     */
+
     public String getGoogleId(Map<String, String> userInfo) {
         return userInfo.get("id");
     }
-
-    /**
-     * Lấy email từ user info
-     */
     public String getEmail(Map<String, String> userInfo) {
         return userInfo.get("email");
     }
-
-    /**
-     * Lấy tên từ user info
-     */
     public String getName(Map<String, String> userInfo) {
         return userInfo.get("name");
     }
-    /**
-     * Lấy ảnh đại diện từ user info
-     */
-    public String getPicture(Map<String, String> userInfo) {
-        return userInfo.get("picture");
-    }
+//    public String getPicture(Map<String, String> userInfo) {
+//        return userInfo.get("picture");
+//    }
 }

@@ -12,8 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class GoogleLoginDtoRequest {
     @NotBlank(message = "Google authorization code không được bỏ trống")
-    private String code;  // Authorization code từ Google sau khi user đăng nhập
-    
-    private String redirectUri;  // Redirect URI mà frontend đã dùng (nếu không có thì dùng từ config)
+    private String code;
+    private String redirectUri;
 }
 

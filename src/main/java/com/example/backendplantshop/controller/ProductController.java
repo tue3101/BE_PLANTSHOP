@@ -35,6 +35,16 @@ public class ProductController {
                 .build();
     }
 
+    @GetMapping("/getall-deleted")
+    public ApiResponse<List<ProductDtoResponse>> goGetAllProductDeleted() {
+        return ApiResponse.<List<ProductDtoResponse>>builder()
+                .statusCode(ErrorCode.CALL_API_SUCCESSFULL.getCode())
+                .success(Boolean.TRUE)
+                .message(ErrorCode.CALL_API_SUCCESSFULL.getMessage())
+                .data(productService.getAllProductDeleted())
+                .build();
+    }
+
     @GetMapping("/get-by-id/{id}")
     public ApiResponse<ProductDtoResponse> doGetProductById(@PathVariable("id") int id) {
         return ApiResponse.<ProductDtoResponse>builder()

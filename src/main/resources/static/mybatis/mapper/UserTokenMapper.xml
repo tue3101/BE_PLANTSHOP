@@ -13,9 +13,6 @@
         <result column="created_at" property="created_at"/>
 
     </resultMap>
-    <!-- Các phần tử SQL-->
-
-
 
     <insert id="insertToken" >
         INSERT INTO user_tokens( user_id
@@ -29,50 +26,52 @@
                , #{revoked}
                )
     </insert>
-
-
-    <!-- Revoke 1 token -->
-    <update id="revokeToken" parameterType="int">
-        UPDATE user_tokens
-        SET revoked = TRUE
-        WHERE token_id = #{tokenId}
-    </update>
-
     <!-- Revoke tất cả token của user -->
     <update id="revokeTokensByUser" parameterType="int">
         UPDATE user_tokens
-        SET revoked = TRUE
+        SET revoked = 1
         WHERE user_id = #{userId}
+          AND revoked = 0
     </update>
-
-    <select id="findById" resultType="UserTokens">
-        SELECT * FROM user_tokens WHERE token_id = #{tokenId}
-    </select>
-    <!-- Tìm token theo giá trị -->
-    <select id="findByToken" parameterType="string" resultType="UserTokens">
+    <!--    tìm token bằng user_id-->
+    <select id="findTokensByUserId" resultMap="UserTokenResultMap">
         SELECT *
         FROM user_tokens
-        WHERE token = #{token}
+        WHERE user_id = #{userId}
+          AND revoked = 0
+        ORDER BY expired_at DESC
             LIMIT 1
     </select>
 
-<!--    tìm token bằng user_id-->
-        <select id="findTokensByUserId" resultMap="UserTokenResultMap">
-                SELECT *
-                FROM user_tokens
-                WHERE user_id = #{userId}
-                    AND revoked = false
-                ORDER BY expired_at DESC
-                LIMIT 1
-        </select>
+
+    <!-- Revoke 1 token -->
+<!--    <update id="revokeToken" parameterType="int">-->
+<!--        UPDATE user_tokens-->
+<!--        SET revoked = TRUE-->
+<!--        WHERE token_id = #{tokenId}-->
+<!--    </update>-->
+
+
+
+<!--    <select id="findById" resultType="UserTokens">-->
+<!--        SELECT * FROM user_tokens WHERE token_id = #{tokenId}-->
+<!--    </select>-->
+    <!-- Tìm token theo giá trị -->
+<!--    <select id="findByToken" parameterType="string" resultType="UserTokens">-->
+<!--        SELECT *-->
+<!--        FROM user_tokens-->
+<!--        WHERE token = #{token}-->
+<!--            LIMIT 1-->
+<!--    </select>-->
+
 
     <!-- Lấy danh sách token hợp lệ (chưa hết hạn & chưa bị revoke) -->
-    <select id="findValidTokensByUser" resultType="UserTokens">
-        SELECT *
-        FROM user_tokens
-        WHERE user_id = #{userId}
-          AND revoked = FALSE
-          AND expired_at > #{now}
-    </select>
+<!--    <select id="findValidTokensByUser" resultType="UserTokens">-->
+<!--        SELECT *-->
+<!--        FROM user_tokens-->
+<!--        WHERE user_id = #{userId}-->
+<!--          AND revoked = FALSE-->
+<!--          AND expired_at > #{now}-->
+<!--    </select>-->
 
 </mapper>

@@ -20,11 +20,11 @@ public class ProductDtoRequest {
 //    @NotBlank(message = "giá sản phẩm không được bỏ trống")
     private BigDecimal price;
 //    @NotBlank(message = "số lượng sản phẩm không được bỏ trống")
-    private int quantity;
+    private Integer quantity;
 //    @NotBlank(message = "kích cỡ không được bỏ trống")
     private String size;
     private Boolean out_of_stock;
     private boolean is_deleted;
 //    @NotBlank(message = "vui lòng chọn danh mục")
-    private int category_id;
+    private Integer category_id;
 }

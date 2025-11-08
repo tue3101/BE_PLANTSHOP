@@ -16,7 +16,11 @@ public interface CategoryMapper {
     public int update(Category category);
     public int delete(@Param("categoryID") int id);
     public Category findByName(@Param("categoryName") String categoryName);
+    
+    
+    Category findByNameIgnoreDeleted(@Param("categoryName") String categoryName);
 
+    List<Category> getAllCategoryDeleted();
     Category findByIdDeleted(@Param("categoryID")int id);
     void restoreCategory(@Param("categoryID")int id);
     Integer countProductsByCategory(@Param("categoryID") int categoryId);

@@ -57,14 +57,21 @@
         FROM cart_details cd
                  JOIN products p ON cd.product_id = p.product_id
         WHERE cd.cart_id = #{cartID}
-          AND cd.is_deleted = false
+          AND cd.is_deleted = 0
     </select>
+
+<!--    để client ko thêm sl vượt quá cho phép-->
     <select id="findQuantityInCart" resultType="int">
         SELECT quantity
         FROM cart_details
         WHERE cart_id = #{cartID}
           AND product_id = #{productID}
-          AND is_deleted = false
+          AND is_deleted = 0
+    </select>
+
+    <!-- Lấy số lượng tồn kho của sản phẩm -->
+    <select id="findProductQuantityInStock" parameterType="int" resultType="int">
+        SELECT quantity FROM products WHERE product_id = #{productID}
     </select>
 
 
@@ -83,18 +90,15 @@
                , NOW()
                , NOW()
                )
-            ON DUPLICATE KEY UPDATE
-                                 quantity = quantity + VALUES(quantity),
-                                 updated_at = NOW();
+            ON DUPLICATE KEY
+        UPDATE
+            quantity = quantity + VALUES(quantity),
+            updated_at = NOW();
 
 
     </insert>
 
 
-     <!-- Lấy số lượng tồn kho của sản phẩm -->
-    <select id="findProductQuantityInStock" parameterType="int" resultType="int">
-        SELECT quantity FROM products WHERE product_id = #{productID}
-    </select>
 
 
     <update id="updateQuantity">
@@ -105,17 +109,17 @@
         WHERE cart_id = #{cartID} AND product_id = #{productID} AND is_deleted = false
     </update>
 
-    <update id="increaseQuantity">
-        UPDATE cart_details
-        SET quantity = quantity + 1, updated_at = NOW()
-        WHERE cart_id = #{cartID} AND product_id = #{productID} AND is_deleted = false
-    </update>
+<!--    <update id="increaseQuantity">-->
+<!--        UPDATE cart_details-->
+<!--        SET quantity = quantity + 1, updated_at = NOW()-->
+<!--        WHERE cart_id = #{cartID} AND product_id = #{productID} AND is_deleted = false-->
+<!--    </update>-->
 
-    <update id="decreaseQuantity">
-        UPDATE cart_details
-        SET quantity = quantity - 1, updated_at = NOW()
-        WHERE cart_id = #{cartID} AND product_id = #{productID} AND is_deleted = false AND quantity > 1
-    </update>
+<!--    <update id="decreaseQuantity">-->
+<!--        UPDATE cart_details-->
+<!--        SET quantity = quantity - 1, updated_at = NOW()-->
+<!--        WHERE cart_id = #{cartID} AND product_id = #{productID} AND is_deleted = false AND quantity > 1-->
+<!--    </update>-->
 
 <delete id="deleteByUserId" parameterType="int">
     UPDATE cart_details
@@ -141,11 +145,11 @@
           AND is_deleted = true
     </select>
 
-    <!-- Restore sản phẩm đã bị soft delete và reset quantity = 1 -->
+    <!-- Restore sản phẩm đã bị soft delete và set quantity theo giá trị được truyền vào -->
     <update id="restoreProductToCart">
         UPDATE cart_details
         SET is_deleted = 0,
-            quantity = 1,
+            quantity = #{quantity},
             updated_at = NOW()
         WHERE cart_id = #{cartID}
           AND product_id = #{productID}

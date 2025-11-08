@@ -13,9 +13,6 @@ import java.util.Map;
 
 @Component
 public class JwtUtil {
-//    private static final String SECRET_KEY="nguyenngocthanhtuedh52112019nguyenngocthanhtuedh52112019"; // HS256 phải trên 32 ký tự
-//    private static final long ACCESS_TOKEN_EXPIRATION = 1000 * 60 * 60; // 1h
-//    private static final long REFRESH_TOKEN_EXPIRATION = 1000 * 60 * 60 * 24 * 7; // 7 ngày
 
     @Value("${jwt.secret}")
     private String secretKey;
@@ -26,6 +23,7 @@ public class JwtUtil {
     @Value("${jwt.refresh-expiration}")
     private long refreshTokenExpiration;
 
+    // HS256 phải trên 32 ký tự
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
@@ -41,7 +39,7 @@ public class JwtUtil {
         //xây dụng token
         return Jwts.builder()
                 .setClaims(claims) //thêm payload
-                .setSubject(String.valueOf(user_id)) //định danh tính token
+                .setSubject(String.valueOf(user_id)) //định danh tính token => lúc này user_id là sub khi decode
                 .setIssuedAt(new Date()) //ghi nhớ tgian tạo
                 .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpiration)) //hết hạn
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256) //ký token với thuật toán
@@ -52,7 +50,6 @@ public class JwtUtil {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
         claims.put("type", "refresh");
-        // claims.put("ver", getCurrentRefreshVersion(user_id));
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(String.valueOf(user_id))
@@ -118,16 +115,6 @@ public class JwtUtil {
             return false;
         }
     }
-//
-//    // Kiểm tra token có phải refresh token không
-//    public boolean isRefreshToken(String token) {
-//        try {
-//            Claims claims = extractAllClaims(token);
-//            return "refresh".equals(claims.get("type", String.class));
-//        } catch (Exception e) {
-//            return false;
-//        }
-//    }
 
 
 }

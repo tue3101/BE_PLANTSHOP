@@ -18,6 +18,7 @@ public class DiscountConvert {
                 .discount_name(discounts.getDiscount_name())
                 .value(discounts.getValue())
                 .type(discounts.getType())
+                .quantity(discounts.getQuantity())
                 .updated_at(discounts.getUpdated_at())
                 .created_at(discounts.getCreated_at())
                 .is_deleted(discounts.getIs_deleted())

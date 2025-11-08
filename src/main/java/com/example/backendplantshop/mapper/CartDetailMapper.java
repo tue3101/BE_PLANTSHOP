@@ -25,12 +25,12 @@ public interface CartDetailMapper {
                         @Param("selected") Boolean selected);
 
     // Tăng số lượng lên 1
-    void increaseQuantity(@Param("cartID") int cartId,
-                         @Param("productID") int productId);
-
-    // Giảm số lượng xuống 1
-    void decreaseQuantity(@Param("cartID") int cartId,
-                         @Param("productID") int productId);
+//    void increaseQuantity(@Param("cartID") int cartId,
+//                         @Param("productID") int productId);
+//
+//    // Giảm số lượng xuống 1
+//    void decreaseQuantity(@Param("cartID") int cartId,
+//                         @Param("productID") int productId);
 
     void deleteByUserId(@Param("userID") int userId);
     void restoreByUserId(@Param("userID") int userId);
@@ -43,9 +43,11 @@ public interface CartDetailMapper {
     Boolean checkDeletedProduct(@Param("cartID") int cartId,
                                @Param("productID") int productId);
 
-    // Restore sản phẩm đã bị soft delete và reset quantity = 1
+    // Restore sản phẩm đã bị soft delete và set quantity theo giá trị được truyền vào
     void restoreProductToCart(@Param("cartID") int cartId,
-                             @Param("productID") int productId);
+                             @Param("productID") int productId,
+                              @Param("quantity") int quantity);
+
 
     Integer findQuantityInCart(@Param("cartID") Integer cartId, @Param("productID") int productId);
 

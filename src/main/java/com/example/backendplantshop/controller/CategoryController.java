@@ -29,6 +29,15 @@ public class CategoryController {
                 .build();
     }
 
+    @GetMapping("/getall-deleted")
+    public ApiResponse<List<CategoryDtoResponse>> doGetAllCategoryDeleted() {
+        return ApiResponse.<List<CategoryDtoResponse>>builder()
+                .statusCode(ErrorCode.CALL_API_SUCCESSFULL.getCode())
+                .success(Boolean.TRUE)
+                .message(ErrorCode.CALL_API_SUCCESSFULL.getMessage())
+                .data(categoryService.getAllCategogyDeleted())
+                .build();
+    }
     @GetMapping("/get-product-by-category/{id}")
     ApiResponse<Category> getProductByCategory(@PathVariable("id") int id) {
         return ApiResponse.<Category>builder()

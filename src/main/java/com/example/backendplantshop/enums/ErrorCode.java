@@ -26,11 +26,13 @@ public enum ErrorCode {
 
     MISSING_REQUIRED_FIELD(1004, "không được để trống"),
     EMAIL_ALREADY_EXISTS(1003, "email đã được đăng ký"),
+    EMAIL_DISABLED_NEED_RESTORE(1003, "user với email này đã bị vô hiệu hóa, hãy khôi phục lại"),
     PHONE_ALREADY_EXISTS(1003, "số điện thoại đã được đăng ký"),
     USERNAME_ALREADY_EXISTS(1003, "username đã tồn tại"),
 
     USER_NOT_EXISTS(1002, "user không tồn tại"),
     INVALID_CREDENTIALS(401, "mật khẩu không đúng"),
+    ACCOUNT_DISABLED(403, "tài khoản của bạn đã bị vô hiệu hóa"),
 
 //    =========================================================================
 
@@ -45,6 +47,7 @@ public enum ErrorCode {
 // ErrorCode.java
 
     CATEGORY_HAS_PRODUCTS(1000,"Danh mục vẫn còn sản phẩm, không thể xóa"),
+    CANNOT_RESTORE_PRODUCT_CATEGORY_DELETED(1000, "Không thể khôi phục sản phẩm vì danh mục của sản phẩm đã bị xóa"),
 
     LIST_NOT_FOUND(1000, "Danh sách rỗng"),
     NAME_EMPTY(1001, "tên không được để trống"),

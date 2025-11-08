@@ -37,33 +37,30 @@ public class CartDetailServiceImpl implements CartDetailService {
         }
         // 1. Kiểm tra cart của user
         Integer cartId = cartMapper.findCartIdByUserId(userId);
-
         if (cartId == null) {
-            // chưa có giỏ hàng → tạo mới
             cartMapper.createCartForUser(userId);
             cartId = cartMapper.findCartIdByUserId(userId);
         }
 
+
+        int availableQuantity = cartDetailMapper.findProductQuantityInStock(productId);
+
         // 2. Kiểm tra xem sản phẩm có đã bị soft delete không
         Boolean isDeleted = cartDetailMapper.checkDeletedProduct(cartId, productId);
         if (Boolean.TRUE.equals(isDeleted)) {
-            // Kiểm tra số lượng tồn kho có đủ để restore (ít nhất 1 sản phẩm)
-            Integer availableQuantity = cartDetailMapper.findProductQuantityInStock(productId);
-            if (availableQuantity == null || availableQuantity < 1) {
+            if (availableQuantity <= 0 || quantity > availableQuantity || quantity < 1) {
                 throw new AppException(ErrorCode.QUANTITY_IS_NOT_ENOUGH);
             }
-            // Restore sản phẩm đã bị xóa và reset quantity = 1
-            cartDetailMapper.restoreProductToCart(cartId, productId);
+            cartDetailMapper.restoreProductToCart(cartId, productId, quantity);
             return;
         }
 
         // 3. Kiểm tra số lượng tồn kho của sản phẩm
-        Integer availableQuantity = cartDetailMapper.findProductQuantityInStock(productId);
-        if (availableQuantity == null || quantity > availableQuantity) {
+        if (availableQuantity <= 0 || quantity > availableQuantity) {
             throw new AppException(ErrorCode.QUANTITY_IS_NOT_ENOUGH);
         }
 
-        // 4. Lấy số lượng hiện có trong giỏ hàng của user (nếu có)
+        // 4. Lấy số lượng hiện có trong giỏ hàng của user
         Integer currentQuantityInCart = cartDetailMapper.findQuantityInCart(cartId, productId);
         if (currentQuantityInCart == null) {
             currentQuantityInCart = 0;
@@ -88,6 +85,8 @@ public class CartDetailServiceImpl implements CartDetailService {
 
         Integer cartId = cartMapper.findCartIdByUserId(currentUserId);
         if (cartId == null) throw new AppException(ErrorCode.CART_IS_EMPTY);
+
+
         Integer availableQuantity = cartDetailMapper.findProductQuantityInStock(productId);
         if (availableQuantity == null || newQuantity > availableQuantity || newQuantity < 1) {
             throw new AppException(ErrorCode.QUANTITY_IS_NOT_ENOUGH);
@@ -102,7 +101,6 @@ public class CartDetailServiceImpl implements CartDetailService {
             if (detail != null) {
                 selected = detail.getSelected();
             } else {
-                // Nếu không tìm thấy, mặc định là false
                 selected = false;
             }
         }
@@ -111,55 +109,55 @@ public class CartDetailServiceImpl implements CartDetailService {
 
     }
 
-    @Override
-    public void increaseQuantity(int userId, int productId, String authHeader) {
-        int currentUserId = authService.getCurrentUserId();
-        String role = authService.getCurrentRole();
-        if (!authService.isUser(role) || currentUserId != userId) {
-            throw new AppException(ErrorCode.ACCESS_DENIED);
-        }
-        Integer cartId = cartMapper.findCartIdByUserId(currentUserId);
-        if (cartId == null){
-            throw new AppException(ErrorCode.CART_IS_EMPTY);
-        }
-        // Lấy số lượng hiện tại
-        List<CartDetails> details = cartDetailMapper.findCartDetailByCartId(cartId);
-        CartDetails detail = details.stream()
-                .filter(d -> d.getProduct_id() == productId)
-                .findFirst()
-                .orElse(null);
-        if (detail == null) throw new AppException(ErrorCode.CART_IS_EMPTY);
-        int newQuantity = detail.getQuantity() + 1;
-        Integer availableQuantity = cartDetailMapper.findProductQuantityInStock(productId);
-        if (availableQuantity == null || newQuantity > availableQuantity) {
-            throw new AppException(ErrorCode.QUANTITY_IS_NOT_ENOUGH);
-        }
-        cartDetailMapper.increaseQuantity(cartId, productId);
-    }
-
-    @Override
-    public void decreaseQuantity(int userId, int productId, String authHeader) {
-        int currentUserId = authService.getCurrentUserId();
-        String role = authService.getCurrentRole();
-        if (!authService.isUser(role) || currentUserId != userId) {
-            throw new AppException(ErrorCode.ACCESS_DENIED);
-        }
-        Integer cartId = cartMapper.findCartIdByUserId(currentUserId);
-        if (cartId == null) {
-            throw new AppException(ErrorCode.CART_IS_EMPTY);
-        }
-        // Lấy số lượng hiện tại
-        List<CartDetails> details = cartDetailMapper.findCartDetailByCartId(cartId);
-        CartDetails detail = details.stream()
-                .filter(d -> d.getProduct_id() == productId)
-                .findFirst()//trả phần tử product_id ngay lập tức
-                .orElse(null);
-        if (detail == null || detail.getQuantity() <1)
-        {
-            throw new AppException(ErrorCode.INVALID_QUANTITY);
-        }
-        cartDetailMapper.decreaseQuantity(cartId, productId);
-    }
+//    @Override
+//    public void increaseQuantity(int userId, int productId, String authHeader) {
+//        int currentUserId = authService.getCurrentUserId();
+//        String role = authService.getCurrentRole();
+//        if (!authService.isUser(role) || currentUserId != userId) {
+//            throw new AppException(ErrorCode.ACCESS_DENIED);
+//        }
+//        Integer cartId = cartMapper.findCartIdByUserId(currentUserId);
+//        if (cartId == null){
+//            throw new AppException(ErrorCode.CART_IS_EMPTY);
+//        }
+//        // Lấy số lượng hiện tại
+//        List<CartDetails> details = cartDetailMapper.findCartDetailByCartId(cartId);
+//        CartDetails detail = details.stream()
+//                .filter(d -> d.getProduct_id() == productId)
+//                .findFirst()
+//                .orElse(null);
+//        if (detail == null) throw new AppException(ErrorCode.CART_IS_EMPTY);
+//        int newQuantity = detail.getQuantity() + 1;
+//        Integer availableQuantity = cartDetailMapper.findProductQuantityInStock(productId);
+//        if (availableQuantity == null || newQuantity > availableQuantity) {
+//            throw new AppException(ErrorCode.QUANTITY_IS_NOT_ENOUGH);
+//        }
+//        cartDetailMapper.increaseQuantity(cartId, productId);
+//    }
+//
+//    @Override
+//    public void decreaseQuantity(int userId, int productId, String authHeader) {
+//        int currentUserId = authService.getCurrentUserId();
+//        String role = authService.getCurrentRole();
+//        if (!authService.isUser(role) || currentUserId != userId) {
+//            throw new AppException(ErrorCode.ACCESS_DENIED);
+//        }
+//        Integer cartId = cartMapper.findCartIdByUserId(currentUserId);
+//        if (cartId == null) {
+//            throw new AppException(ErrorCode.CART_IS_EMPTY);
+//        }
+//        // Lấy số lượng hiện tại
+//        List<CartDetails> details = cartDetailMapper.findCartDetailByCartId(cartId);
+//        CartDetails detail = details.stream()
+//                .filter(d -> d.getProduct_id() == productId)
+//                .findFirst()//trả phần tử product_id ngay lập tức
+//                .orElse(null);
+//        if (detail == null || detail.getQuantity() <1)
+//        {
+//            throw new AppException(ErrorCode.INVALID_QUANTITY);
+//        }
+//        cartDetailMapper.decreaseQuantity(cartId, productId);
+//    }
 
      @Override
     public void removeProductFromCart(int userId, int productId, String authHeader) {

@@ -12,7 +12,6 @@ public interface AuthenticationService {
     void logout(String authHeader);
     LoginDtoResponse login(LoginDtoRequest loginDtoRequest);
     LoginDtoResponse loginWithGoogle(GoogleLoginDtoRequest googleLoginDtoRequest);
-//    String findRoleByUserId(int id);
     LoginDtoResponse refresh(String refreshToken);
     void changePassword(ChangePasswordDtoRequest changePasswordDtoRequest, String authHeader);
 }

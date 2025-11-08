@@ -14,6 +14,7 @@ public interface CategoryService {
     void update(int id, CategoryDtoRequest categoryRequest);
     void delete(int id);
 
+    List<CategoryDtoResponse> getAllCategogyDeleted();
     void restoreCategory(int id);
 
 }
