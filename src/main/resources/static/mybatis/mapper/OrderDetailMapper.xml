@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.backendplantshop.mapper.OrderDetailMapper">
+    <resultMap id="OrderDetailResultMap" type="OrderDetail">
+        <id column="order_detail_id" property="order_detail_id"/>
+        <result column="quantity" property="quantity"/>
+        <result column="price_at_order" property="price_at_order"/>
+        <result column="sub_total" property="sub_total"/>
+        <result column="note" property="note"/>
+        <result column="created_at" property="created_at"/>
+        <result column="updated_at" property="updated_at"/>
+        <result column="product_id" property="product_id"/>
+        <result column="order_id" property="order_id"/>
+        <result column="is_deleted" property="is_deleted"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="OrderDetail" useGeneratedKeys="true" keyProperty="order_detail_id">
+        INSERT INTO order_details (quantity, price_at_order, sub_total, note, created_at, updated_at, product_id, order_id, is_deleted)
+        VALUES (#{quantity}, #{price_at_order}, #{sub_total}, #{note}, #{created_at}, #{updated_at}, #{product_id}, #{order_id}, #{is_deleted})
+    </insert>
+
+    <select id="findById" parameterType="int" resultMap="OrderDetailResultMap">
+        SELECT *
+        FROM order_details
+        WHERE order_detail_id = #{orderDetailID}
+        AND is_deleted = 0
+    </select>
+
+    <select id="findByOrderId" parameterType="int" resultMap="OrderDetailResultMap">
+        SELECT *
+        FROM order_details
+        WHERE order_id = #{orderID}
+        AND is_deleted = 0
+    </select>
+
+    <update id="update" parameterType="OrderDetail">
+        UPDATE order_details
+        SET quantity = #{quantity},
+            price_at_order = #{price_at_order},
+            sub_total = #{sub_total},
+            note = #{note},
+            updated_at = #{updated_at},
+            product_id = #{product_id},
+            order_id = #{order_id}
+        WHERE order_detail_id = #{order_detail_id}
+    </update>
+
+    <update id="delete" parameterType="int">
+        UPDATE order_details
+        SET is_deleted = 1
+        WHERE order_detail_id = #{orderDetailID}
+    </update>
+</mapper>
+

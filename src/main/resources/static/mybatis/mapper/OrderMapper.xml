@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.backendplantshop.mapper.OrderMapper">
+    <resultMap id="OrderResultMap" type="Orders">
+        <id column="order_id" property="order_id"/>
+        <result column="total" property="total"/>
+        <result column="discount_amount" property="discount_amount"/>
+        <result column="final_total" property="final_total"/>
+        <result column="order_date" property="order_date"/>
+        <result column="status" property="status" javaType="com.example.backendplantshop.enums.OrderSatus" />
+        <result column="created_at" property="created_at"/>
+        <result column="updated_at" property="updated_at"/>
+        <result column="user_id" property="user_id"/>
+        <result column="discount_id" property="discount_id"/>
+        <result column="is_deleted" property="is_deleted"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="Orders" useGeneratedKeys="true" keyProperty="order_id">
+        INSERT INTO orders (total, discount_amount, final_total, order_date, status, created_at, updated_at, user_id, discount_id, is_deleted)
+        VALUES (#{total}, #{discount_amount}, #{final_total}, #{order_date}, #{status}, #{created_at}, #{updated_at}, #{user_id}, #{discount_id}, #{is_deleted})
+    </insert>
+
+    <select id="findById" parameterType="int" resultMap="OrderResultMap">
+        SELECT *
+        FROM orders
+        WHERE order_id = #{orderID}
+        AND is_deleted = 0
+    </select>
+
+    <select id="findByUserId" parameterType="int" resultMap="OrderResultMap">
+        SELECT *
+        FROM orders
+        WHERE user_id = #{userID}
+        AND is_deleted = 0
+        ORDER BY order_date DESC
+    </select>
+
+    <select id="getAll" resultMap="OrderResultMap">
+        SELECT *
+        FROM orders
+        WHERE is_deleted = 0
+        ORDER BY order_date DESC
+    </select>
+
+    <update id="update" parameterType="Orders">
+        UPDATE orders
+        SET total = #{total},
+            discount_amount = #{discount_amount},
+            final_total = #{final_total},
+            order_date = #{order_date},
+            status = #{status},
+            updated_at = #{updated_at},
+            user_id = #{user_id},
+            discount_id = #{discount_id}
+        WHERE order_id = #{order_id}
+    </update>
+
+    <update id="delete" parameterType="int">
+        UPDATE orders
+        SET is_deleted = 1
+        WHERE order_id = #{orderID}
+    </update>
+</mapper>
+

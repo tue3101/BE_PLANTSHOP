@@ -11,5 +11,7 @@
         <typeAlias type="com.example.backendplantshop.entity.Carts" alias="Carts"/>
         <typeAlias type="com.example.backendplantshop.entity.CartDetails" alias="CartDetails"/>
         <typeAlias type="com.example.backendplantshop.entity.UserTokens" alias="UserTokens"/>
+        <typeAlias type="com.example.backendplantshop.entity.Orders" alias="Orders"/>
+        <typeAlias type="com.example.backendplantshop.entity.OrderDetails" alias="OrderDetail"/>
     </typeAliases>
 </configuration>

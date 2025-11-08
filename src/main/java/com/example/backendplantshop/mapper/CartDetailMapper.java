@@ -34,6 +34,8 @@ public interface CartDetailMapper {
 
     void deleteByUserId(@Param("userID") int userId);
     void restoreByUserId(@Param("userID") int userId);
+    // Xóa mềm các sản phẩm đã selected (selected = true) trong giỏ hàng của user
+    void deleteSelectedProductsByUserId(@Param("userID") int userId);
 
     // Xóa sản phẩm khỏi giỏ hàng (soft delete)
     void removeProductFromCart(@Param("cartID") int cartId,

@@ -19,4 +19,5 @@ public interface ProductMapper {
      List<Products> getAllProductDeleted();
     Products findByIdDeleted(@Param("productID")int id);
     void restoreProduct(@Param("productID")int id);
+    void updateProductQuantity(@Param("productID") int productId, @Param("quantity") int quantity);
 }

@@ -25,6 +25,7 @@ public class GlobalExceptionHandler {
 
     public void logError(Exception e, HttpServletRequest request) {
         log.error("Lỗi call api: " + request.getRequestURI() + " với ERROR: " + e.getClass().getSimpleName());
+        log.error("Error message: {}", e.getMessage(), e);
     }
 
 
@@ -69,7 +70,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value = AppException.class)
     ResponseEntity<ApiResponse> handleAppException(AppException e, HttpServletRequest request){
         logError(e, request);
-        log.info("Xử lý AppException: code={}, message={}", e.getErrorCode().getCode(), e.getErrorCode().getMessage());
+        log.error("Xử lý AppException: code={}, message={}", e.getErrorCode().getCode(), e.getErrorCode().getMessage());
         return ResponseEntity.badRequest().body(
                 ApiResponse.builder()
                         .statusCode(e.getErrorCode().getCode())

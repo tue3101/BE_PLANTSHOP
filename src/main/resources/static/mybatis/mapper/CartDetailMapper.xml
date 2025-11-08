@@ -129,6 +129,17 @@
     )
 </delete>
 
+<!-- Xóa mềm các sản phẩm đã selected (selected = 1) trong giỏ hàng của user -->
+<update id="deleteSelectedProductsByUserId" parameterType="int">
+    UPDATE cart_details
+    SET is_deleted = 1, updated_at = NOW()
+    WHERE cart_id IN (
+        SELECT cart_id FROM carts WHERE user_id = #{userID}
+    )
+    AND selected = 1
+    AND is_deleted = 0
+</update>
+
  <!-- Xóa sản phẩm khỏi giỏ hàng (soft delete) -->
     <update id="removeProductFromCart">
         UPDATE cart_details
