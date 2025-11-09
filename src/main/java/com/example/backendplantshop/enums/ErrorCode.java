@@ -49,6 +49,7 @@ public enum ErrorCode {
 
     CATEGORY_HAS_PRODUCTS(1000,"Danh mục vẫn còn sản phẩm, không thể xóa"),
     CANNOT_RESTORE_PRODUCT_CATEGORY_DELETED(1000, "Không thể khôi phục sản phẩm vì danh mục của sản phẩm đã bị xóa"),
+    USER_HAS_PENDING_ORDERS(1000, "User đang có đơn hàng chưa giao thành công, không thể xóa"),
 
     LIST_NOT_FOUND(1000, "Danh sách rỗng"),
     NAME_EMPTY(1001, "tên không được để trống"),

@@ -4,8 +4,10 @@ import com.example.backendplantshop.convert.UserConvert;
 import com.example.backendplantshop.dto.request.users.UserDtoRequest;
 import com.example.backendplantshop.dto.response.user.LoginDtoResponse;
 import com.example.backendplantshop.dto.response.user.UserDtoResponse;
+import com.example.backendplantshop.entity.Orders;
 import com.example.backendplantshop.entity.Users;
 import com.example.backendplantshop.enums.ErrorCode;
+import com.example.backendplantshop.enums.OrderSatus;
 import com.example.backendplantshop.exception.AppException;
 import com.example.backendplantshop.mapper.*;
 import com.example.backendplantshop.service.intf.UserService;
@@ -27,6 +29,7 @@ public class UserServiceImpl implements UserService {
     private final CartDetailMapper cartDetailMapper;
     private final CartMapper cartMapper;
     private final UserTokenMapper userTokenMapper;
+    private final OrderMapper orderMapper;
 
 
     private String clean(String input) {
@@ -117,10 +120,43 @@ public LoginDtoResponse update(int id, UserDtoRequest userDtoRequest) {
         if(userMapper.findById(id) == null){
             throw new AppException(ErrorCode.USER_NOT_EXISTS);
         }
+        
+        // Kiểm tra user có đơn hàng chưa giao thành công không
+        boolean hasPendingOrders = checkUserHasPendingOrders(id);
+        if (hasPendingOrders) {
+            log.warn("User đang có đơn hàng chưa giao thành công, không thể xóa: user_id={}", id);
+            throw new AppException(ErrorCode.USER_HAS_PENDING_ORDERS);
+        }
+        
         cartDetailMapper.deleteByUserId(id);
         cartMapper.deleteByUserId(id);
         userTokenMapper.revokeTokensByUser(id);
         userMapper.delete(id);
+        log.info("Đã xóa user: user_id={}", id);
+    }
+    
+    private boolean checkUserHasPendingOrders(int userId) {
+        // Lấy tất cả đơn hàng của user
+        List<Orders> userOrders = orderMapper.findByUserId(userId);
+        
+        if (userOrders == null || userOrders.isEmpty()) {
+            log.debug("User chưa có đơn hàng nào: user_id={}", userId);
+            return false;
+        }
+        
+        // Kiểm tra xem có đơn hàng nào chưa DELIVERED không
+        // Các trạng thái chưa giao thành công: PENDING_CONFIRMATION, CONFIRMED, SHIPPING
+        // CANCELLED không tính vì đã hủy
+        boolean hasPendingOrders = userOrders.stream()
+                .anyMatch(order -> order.getStatus() != OrderSatus.DELIVERED 
+                        && order.getStatus() != OrderSatus.CANCELLED);
+        
+        if (hasPendingOrders) {
+            log.info("User có đơn hàng chưa giao thành công: user_id={}, số đơn hàng={}", 
+                    userId, userOrders.size());
+        }
+        
+        return hasPendingOrders;
     }
 
     public UserDtoResponse getUser(String authHeader, Integer id) {

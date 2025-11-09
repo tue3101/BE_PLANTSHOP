@@ -2,7 +2,7 @@ package com.example.backendplantshop.enums;
 
 public enum OrderSatus {
     PENDING_CONFIRMATION,
-    CONFIREMED,
+    CONFIRMED, // Đã sửa typo từ CONFIREMED
     SHIPPING,
     DELIVERED,
     CANCELLED,

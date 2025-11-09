@@ -2,24 +2,23 @@ package com.example.backendplantshop.service.impl;
 
 import com.example.backendplantshop.convert.OrderConvert;
 import com.example.backendplantshop.convert.PaymentConvert;
+import com.example.backendplantshop.convert.UserConvert;
 import com.example.backendplantshop.dto.request.OrderDtoRequest;
 import com.example.backendplantshop.dto.request.OrderDetailDtoRequest;
 import com.example.backendplantshop.dto.request.PaymentDtoRequest;
 import com.example.backendplantshop.dto.request.UpdateOrderStatusDtoRequest;
 import com.example.backendplantshop.dto.response.OrderDetailDtoResponse;
 import com.example.backendplantshop.dto.response.OrderDtoResponse;
-import com.example.backendplantshop.entity.Payment;
+import com.example.backendplantshop.dto.response.user.UserDtoResponse;
+import com.example.backendplantshop.entity.*;
 import com.example.backendplantshop.enums.PaymentStatus;
-import com.example.backendplantshop.entity.Discounts;
-import com.example.backendplantshop.entity.OrderDetails;
-import com.example.backendplantshop.entity.Orders;
-import com.example.backendplantshop.entity.Products;
 import com.example.backendplantshop.enums.DiscountType;
 import com.example.backendplantshop.enums.ErrorCode;
 import com.example.backendplantshop.enums.OrderSatus;
 import com.example.backendplantshop.exception.AppException;
 import com.example.backendplantshop.mapper.*;
 import com.example.backendplantshop.service.intf.OrderService;
+import com.example.backendplantshop.service.intf.PaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -42,9 +41,10 @@ public class OrderServiceImpl implements OrderService {
     private final CartDetailMapper cartDetailMapper;
     private final CartMapper cartMapper;
     private final AuthServiceImpl authService;
-    private final com.example.backendplantshop.mapper.PaymentMapper paymentMapper;
-    private final com.example.backendplantshop.mapper.PaymentMethodMapper paymentMethodMapper;
-    private final com.example.backendplantshop.service.intf.PaymentService paymentService;
+    private final PaymentMapper paymentMapper;
+    private final PaymentMethodMapper paymentMethodMapper;
+    private final PaymentService paymentService;
+    private final UserMapper userMapper;
 
     @Override
     @Transactional
@@ -254,21 +254,32 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public List<OrderDtoResponse> getAllOrders() {
+        // Kiểm tra quyền: chỉ admin mới được xem tất cả đơn hàng
         String role = authService.getCurrentRole();
         if (!authService.isAdmin(role)) {
+            log.warn("User không có quyền xem tất cả đơn hàng. Role: {}", role);
             throw new AppException(ErrorCode.ACCESS_DENIED);
         }
 
+        // Lấy tất cả đơn hàng từ database
         List<Orders> orders = orderMapper.getAll();
-        if (orders.isEmpty()) {
-            throw new AppException(ErrorCode.LIST_NOT_FOUND);
+        
+        // Nếu danh sách rỗng, trả về list rỗng thay vì throw exception
+        if (orders == null || orders.isEmpty()) {
+            log.info("Không có đơn hàng nào trong hệ thống");
+            return new ArrayList<>();
         }
 
+        log.info("Lấy tất cả đơn hàng: {} đơn hàng", orders.size());
+
+        // Convert sang DTO và thêm thông tin chi tiết
         return orders.stream()
                 .map(order -> {
+                    // Lấy chi tiết đơn hàng
                     List<OrderDetails> orderDetails = orderDetailMapper.findByOrderId(order.getOrder_id());
                     List<OrderDetailDtoResponse> orderDetailDtos = new ArrayList<>();
                     
+                    // Convert order details sang DTO với thông tin sản phẩm
                     for (OrderDetails orderDetail : orderDetails) {
                         Products product = productMapper.findById(orderDetail.getProduct_id());
                         if (product != null) {
@@ -276,13 +287,23 @@ public class OrderServiceImpl implements OrderService {
                                     orderDetail, product);
                             orderDetailDtos.add(orderDetailDto);
                         } else {
+                            // Nếu sản phẩm không tồn tại, vẫn trả về order detail nhưng không có thông tin sản phẩm
                             OrderDetailDtoResponse orderDetailDto = OrderConvert.convertOrderDetailToOrderDetailDtoResponse(orderDetail);
                             orderDetailDtos.add(orderDetailDto);
                         }
                     }
                     
+                    // Lấy thông tin user
+                    Users user = userMapper.findById(order.getUser_id());
+                    UserDtoResponse userDto = null;
+                    if (user != null) {
+                        userDto = UserConvert.convertUsersToUserDtoResponse(user);
+                    }
+                    
+                    // Tạo response DTO
                     OrderDtoResponse response = OrderConvert.convertOrderToOrderDtoResponse(order, orderDetails);
                     response.setOrder_details(orderDetailDtos);
+                    response.setUser(userDto); // Set thông tin user vào response
                     return response;
                 })
                 .collect(Collectors.toList());

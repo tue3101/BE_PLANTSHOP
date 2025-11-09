@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.backendplantshop.mapper.ProductReviewMapper">
+    <resultMap id="ProductReviewResultMap" type="com.example.backendplantshop.entity.ProductReview">
+        <id column="review_id" property="review_id"/>
+        <result column="rating" property="rating"/>
+        <result column="comment" property="comment"/>
+        <result column="product_id" property="product_id"/>
+        <result column="user_id" property="user_id"/>
+        <result column="is_deleted" property="is_deleted"/>
+        <result column="created_at" property="created_at"/>
+        <result column="updated_at" property="updated_at"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="ProductReview" useGeneratedKeys="true" keyProperty="review_id" keyColumn="review_id">
+        INSERT INTO product_review (rating, comment, product_id, user_id, is_deleted, created_at, updated_at)
+        VALUES (#{rating}, #{comment}, #{product_id}, #{user_id}, #{is_deleted}, #{created_at}, #{updated_at})
+    </insert>
+
+    <select id="findById" resultMap="ProductReviewResultMap" parameterType="integer">
+        SELECT *
+        FROM product_review
+        WHERE review_id = #{reviewID}
+          AND is_deleted = 0
+    </select>
+
+    <select id="findByProductId" resultMap="ProductReviewResultMap" parameterType="integer">
+        SELECT *
+        FROM product_review
+        WHERE product_id = #{productID}
+          AND is_deleted = 0
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findByUserId" resultMap="ProductReviewResultMap" parameterType="integer">
+        SELECT *
+        FROM product_review
+        WHERE user_id = #{userID}
+          AND is_deleted = 0
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findByProductIdAndUserId" resultMap="ProductReviewResultMap">
+        SELECT *
+        FROM product_review
+        WHERE product_id = #{productID}
+          AND user_id = #{userID}
+          AND is_deleted = 0
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="getAll" resultMap="ProductReviewResultMap">
+        SELECT *
+        FROM product_review
+        WHERE is_deleted = 0
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="getAllDeleted" resultMap="ProductReviewResultMap">
+        SELECT *
+        FROM product_review
+        WHERE is_deleted = 1
+        ORDER BY updated_at DESC
+    </select>
+
+    <select id="findByIdDeleted" resultMap="ProductReviewResultMap" parameterType="integer">
+        SELECT *
+        FROM product_review
+        WHERE review_id = #{reviewID}
+          AND is_deleted = 1
+    </select>
+
+    <update id="update" parameterType="com.example.backendplantshop.entity.ProductReview">
+        UPDATE product_review
+        SET rating = #{rating},
+            comment = #{comment},
+            updated_at = #{updated_at}
+        WHERE review_id = #{review_id}
+          AND is_deleted = 0
+    </update>
+
+    <update id="delete" parameterType="integer">
+        UPDATE product_review
+        SET is_deleted = 1,
+            updated_at = NOW()
+        WHERE review_id = #{reviewID}
+    </update>
+
+    <update id="restoreReview" parameterType="integer">
+        UPDATE product_review
+        SET is_deleted = 0,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE review_id = #{reviewID}
+          AND is_deleted = 1
+    </update>
+
+</mapper>
+

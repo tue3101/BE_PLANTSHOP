@@ -191,7 +191,7 @@ public class PaymentController {
                     
                     com.example.backendplantshop.dto.request.UpdateOrderStatusDtoRequest statusRequest = 
                             com.example.backendplantshop.dto.request.UpdateOrderStatusDtoRequest.builder()
-                                    .status(OrderSatus.CONFIREMED)
+                                    .status(OrderSatus.CONFIRMED) // Đã sửa typo từ CONFIREMED
                                     .build();
                     orderService.updateOrderStatus(orderId, statusRequest);
                     log.info("Đã cập nhật trạng thái đơn hàng {} thành công sau khi thanh toán", orderId);

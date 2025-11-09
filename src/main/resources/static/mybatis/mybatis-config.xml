@@ -15,5 +15,6 @@
         <typeAlias type="com.example.backendplantshop.entity.OrderDetails" alias="OrderDetail"/>
         <typeAlias type="com.example.backendplantshop.entity.Payment" alias="Payment"/>
         <typeAlias type="com.example.backendplantshop.entity.PaymentMethod" alias="PaymentMethod"/>
+        <typeAlias type="com.example.backendplantshop.entity.ProductReview" alias="ProductReview"/>
     </typeAliases>
 </configuration>

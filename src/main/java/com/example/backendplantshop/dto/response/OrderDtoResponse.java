@@ -1,5 +1,6 @@
 package com.example.backendplantshop.dto.response;
 
+import com.example.backendplantshop.dto.response.user.UserDtoResponse;
 import com.example.backendplantshop.enums.OrderSatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,6 +25,7 @@ public class OrderDtoResponse {
     private LocalDateTime created_at;
     private LocalDateTime updated_at;
     private int user_id;
+    private UserDtoResponse user; 
     private Integer discount_id;
     private List<OrderDetailDtoResponse> order_details;
 }
