@@ -14,6 +14,14 @@ public class MoMoUtil {
      * Tạo chữ ký số (signature) cho MoMo Payment
      */
     public static String createSignature(String accessKey, String secretKey, String rawHash) {
+        // Validate credentials
+        if (secretKey == null || secretKey.trim().isEmpty()) {
+            throw new IllegalArgumentException("MOMO_SECRET_KEY không được để trống. Vui lòng kiểm tra file .env");
+        }
+        if (accessKey == null || accessKey.trim().isEmpty()) {
+            throw new IllegalArgumentException("MOMO_ACCESS_KEY không được để trống. Vui lòng kiểm tra file .env");
+        }
+        
         try {
             Mac mac = Mac.getInstance(HMAC_SHA256);
             SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), HMAC_SHA256);

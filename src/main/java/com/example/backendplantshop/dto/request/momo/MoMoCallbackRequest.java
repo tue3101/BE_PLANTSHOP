@@ -21,5 +21,7 @@ public class MoMoCallbackRequest {
     private Long responseTime;
     private String extraData;
     private String signature;
+    private String orderInfo;
+    private String orderType;
 }
 

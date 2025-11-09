@@ -28,5 +28,14 @@ public class MoMoConfig {
     
     @Value("${momo.request-type:captureWallet}")
     private String requestType;
+    
+    @Value("${momo.store-name:Plant Shop}")
+    private String storeName;
+    
+    @Value("${momo.store-id:PlantShop}")
+    private String storeId;
+    
+    @Value("${momo.lang:vi}")
+    private String lang;
 }
 

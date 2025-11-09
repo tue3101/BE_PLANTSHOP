@@ -147,8 +147,8 @@ public class PaymentController {
                     callbackRequest.getExtraData() != null ? callbackRequest.getExtraData() : "",
                     callbackRequest.getMessage() != null ? callbackRequest.getMessage() : "",
                     callbackRequest.getOrderId(),
-                    "", // orderInfo
-                    "", // orderType
+                    callbackRequest.getOrderInfo() != null ? callbackRequest.getOrderInfo() : "",
+                    callbackRequest.getOrderType() != null ? callbackRequest.getOrderType() : "",
                     callbackRequest.getPartnerCode(),
                     callbackRequest.getPayType() != null ? callbackRequest.getPayType() : "",
                     callbackRequest.getRequestId(),
@@ -168,7 +168,27 @@ public class PaymentController {
             if (callbackRequest.getResultCode() != null && callbackRequest.getResultCode() == 0) {
                 // Thanh toán thành công
                 try {
-                    int orderId = Integer.parseInt(callbackRequest.getOrderId());
+                    // Parse orderId từ MoMo (format: ORDER_{orderId}_{timestamp})
+                    // Ví dụ: ORDER_35_1733831974000 -> orderId = 35
+                    String momoOrderId = callbackRequest.getOrderId();
+                    int orderId;
+                    
+                    if (momoOrderId != null && momoOrderId.startsWith("ORDER_")) {
+                        // Format mới: ORDER_{orderId}_{timestamp}
+                        String[] parts = momoOrderId.split("_");
+                        if (parts.length >= 2) {
+                            orderId = Integer.parseInt(parts[1]);
+                        } else {
+                            // Fallback: thử parse trực tiếp
+                            orderId = Integer.parseInt(momoOrderId);
+                        }
+                    } else {
+                        // Format cũ: chỉ là số (backward compatibility)
+                        orderId = Integer.parseInt(momoOrderId);
+                    }
+                    
+                    log.info("Parse orderId từ MoMo: {} -> {}", momoOrderId, orderId);
+                    
                     com.example.backendplantshop.dto.request.UpdateOrderStatusDtoRequest statusRequest = 
                             com.example.backendplantshop.dto.request.UpdateOrderStatusDtoRequest.builder()
                                     .status(OrderSatus.CONFIREMED)
@@ -176,7 +196,7 @@ public class PaymentController {
                     orderService.updateOrderStatus(orderId, statusRequest);
                     log.info("Đã cập nhật trạng thái đơn hàng {} thành công sau khi thanh toán", orderId);
                 } catch (Exception e) {
-                    log.error("Lỗi khi cập nhật trạng thái đơn hàng: {}", e.getMessage(), e);
+                    log.error("Lỗi khi cập nhật trạng thái đơn hàng từ callback: {}", e.getMessage(), e);
                 }
             } else {
                 log.warn("Thanh toán thất bại: orderId={}, message={}", 
@@ -204,7 +224,7 @@ public class PaymentController {
         log.info("Return từ MoMo: orderId={}, resultCode={}, message={}", orderId, resultCode, message);
         
         // Redirect về frontend với thông tin kết quả
-        String redirectUrl = String.format("/payment-result?orderId=%s&resultCode=%s&message=%s",
+        String redirectUrl = String.format("http://localhost:3000/payment-result?orderId=%s&resultCode=%s&message=%s",
                 orderId != null ? orderId : "",
                 resultCode != null ? resultCode : "",
                 message != null ? message : "");

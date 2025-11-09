@@ -9,7 +9,6 @@ import com.example.backendplantshop.enums.ErrorCode;
 import com.example.backendplantshop.exception.AppException;
 import com.example.backendplantshop.service.intf.MoMoService;
 import com.example.backendplantshop.util.MoMoUtil;
-import com.google.gson.Gson;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
@@ -21,41 +20,60 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
-    name = "momo.mock.enabled", 
-    havingValue = "false", 
-    matchIfMissing = false
-)
 public class MoMoServiceImpl implements MoMoService {
     
     private final MoMoConfig momoConfig;
     private final RestTemplate restTemplate;
-    private final Gson gson = new Gson();
     
     @Override
     public CreatePaymentResponse createPayment(CreatePaymentRequest request) {
         try {
+            // Validate MoMo credentials
+            if (momoConfig.getPartnerCode() == null || momoConfig.getPartnerCode().trim().isEmpty()) {
+                log.error("MOMO_PARTNER_CODE không được để trống. Vui lòng kiểm tra file .env");
+                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+            }
+            if (momoConfig.getAccessKey() == null || momoConfig.getAccessKey().trim().isEmpty()) {
+                log.error("MOMO_ACCESS_KEY không được để trống. Vui lòng kiểm tra file .env");
+                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+            }
+            if (momoConfig.getSecretKey() == null || momoConfig.getSecretKey().trim().isEmpty()) {
+                log.error("MOMO_SECRET_KEY không được để trống. Vui lòng kiểm tra file .env");
+                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+            }
+            
             // Tạo requestId và orderId
+            // requestId: UUID duy nhất cho mỗi request
             String requestId = UUID.randomUUID().toString();
-            String orderId = String.valueOf(request.getOrderId());
+            
+            // orderId cho MoMo: Kết hợp orderId từ DB + timestamp để đảm bảo tính duy nhất
+            // Format: ORDER_{orderId}_{timestamp}
+            // Ví dụ: ORDER_35_1733831974000
+            // Lý do: MoMo yêu cầu orderId phải duy nhất trong hệ thống của họ
+            // Nếu user tạo payment nhiều lần cho cùng một order, mỗi lần sẽ có orderId khác nhau
+            long timestamp = System.currentTimeMillis();
+            String momoOrderId = String.format("ORDER_%d_%d", request.getOrderId(), timestamp);
+            
+            log.info("Tạo MoMo orderId: {} từ orderId DB: {}", momoOrderId, request.getOrderId());
+            
             Long amount = request.getAmount().longValue();
             
             // Tạo orderInfo nếu chưa có
             String orderInfo = request.getOrderInfo();
             if (orderInfo == null || orderInfo.isEmpty()) {
-                orderInfo = "Thanh toán đơn hàng #" + orderId;
+                orderInfo = "Thanh toán đơn hàng #" + request.getOrderId();
             }
             
             // Tạo extraData (có thể để trống hoặc JSON string)
             String extraData = "";
             
-            // Tạo raw hash
+            // Tạo raw hash (sử dụng momoOrderId cho MoMo API)
             String rawHash = MoMoUtil.createRawHash(
                     momoConfig.getAccessKey(),
                     String.valueOf(amount),
                     extraData,
                     momoConfig.getNotifyUrl(),
-                    orderId,
+                    momoOrderId, // Sử dụng momoOrderId thay vì orderId từ DB
                     orderInfo,
                     momoConfig.getPartnerCode(),
                     momoConfig.getReturnUrl(),
@@ -73,18 +91,18 @@ public class MoMoServiceImpl implements MoMoService {
             // Tạo MoMo payment request
             MoMoPaymentRequest momoRequest = MoMoPaymentRequest.builder()
                     .partnerCode(momoConfig.getPartnerCode())
-                    .partnerName("Plant Shop")
-                    .storeId("PlantShop")
+                    .partnerName(momoConfig.getStoreName())
+                    .storeId(momoConfig.getStoreId())
                     .requestId(requestId)
                     .amount(amount)
-                    .orderId(orderId)
+                    .orderId(momoOrderId) // Sử dụng momoOrderId (duy nhất) thay vì orderId từ DB
                     .orderInfo(orderInfo)
                     .redirectUrl(momoConfig.getReturnUrl())
                     .ipnUrl(momoConfig.getNotifyUrl())
                     .requestType(momoConfig.getRequestType())
                     .extraData(extraData)
                     .autoCapture("true")
-                    .lang("vi")
+                    .lang(momoConfig.getLang())
                     .signature(signature)
                     .build();
             
@@ -93,10 +111,28 @@ public class MoMoServiceImpl implements MoMoService {
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<MoMoPaymentRequest> entity = new HttpEntity<>(momoRequest, headers);
             
-            log.info("Gọi MoMo API với requestId: {}, orderId: {}, amount: {}", requestId, orderId, amount);
+            String apiEndpoint = momoConfig.getApiEndpoint();
+            log.info("Gọi MoMo API với requestId: {}, momoOrderId: {}, orderId DB: {}, amount: {}", 
+                    requestId, momoOrderId, request.getOrderId(), amount);
+            
+            // Validate endpoint URL
+            if (apiEndpoint == null || apiEndpoint.trim().isEmpty()) {
+                log.error("MoMo API endpoint không được để trống");
+                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+            }
+            
+            // Tự động sửa URL nếu thiếu /create
+            if (!apiEndpoint.endsWith("/create")) {
+                log.warn("MoMo API endpoint thiếu /create. Tự động sửa từ: {}", apiEndpoint);
+                // Loại bỏ dấu / ở cuối nếu có, rồi thêm /create
+                apiEndpoint = apiEndpoint.replaceAll("/+$", "") + "/create";
+                log.info("URL đã được sửa thành: {}", apiEndpoint);
+            }
+            
+            log.info("MoMo API Endpoint: {}", apiEndpoint);
             
             ResponseEntity<MoMoPaymentResponse> response = restTemplate.exchange(
-                    momoConfig.getApiEndpoint(),
+                    apiEndpoint,
                     HttpMethod.POST,
                     entity,
                     MoMoPaymentResponse.class
@@ -113,12 +149,18 @@ public class MoMoServiceImpl implements MoMoService {
                 throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
             }
             
-            // Tạo response
+            // Tạo response - trả về đầy đủ thông tin để frontend lựa chọn
+            // - deeplink: dùng cho mobile app (momo://)
+            // - payUrl: dùng cho web browser
+            // - qrCodeUrl: dùng để hiển thị QR code
+            log.info("MoMo trả về - payUrl: {}, deeplink: {}, qrCodeUrl: {}", 
+                    momoResponse.getPayUrl(), momoResponse.getDeeplink(), momoResponse.getQrCodeUrl());
+            
             return CreatePaymentResponse.builder()
-                    .payUrl(momoResponse.getPayUrl())
-                    .qrCodeUrl(momoResponse.getQrCodeUrl())
-                    .deeplink(momoResponse.getDeeplink())
-                    .orderId(orderId)
+                    .payUrl(momoResponse.getPayUrl()) // URL thanh toán cho web
+                    .qrCodeUrl(momoResponse.getQrCodeUrl()) // URL QR code
+                    .deeplink(momoResponse.getDeeplink()) // Deeplink cho mobile app (momo://)
+                    .orderId(String.valueOf(request.getOrderId())) // Trả về orderId từ DB cho frontend
                     .amount(amount)
                     .message("Tạo thanh toán thành công")
                     .build();

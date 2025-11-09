@@ -35,9 +35,10 @@ public class SecurityConfig {
 
     //cấu hình bảo mật HTTP
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource) throws Exception {
         http
                 .csrf(csrf -> csrf.disable()) // tắt CSRF vì dùng jwt và api stateless thì session ko tồn tại
+                .cors(cors -> cors.configurationSource(corsConfigurationSource)) // Bật CORS
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) //dùng lambda (biến -> bthuc/khối lệnh) , ko tạo session và ko dùng
                 .authorizeHttpRequests(auth -> auth //cấu hình phân quyền bằng lambda
                         .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh", "/api/auth/google").permitAll() //cho phép truy cập tự do ko cần JWT

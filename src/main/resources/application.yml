@@ -34,18 +34,26 @@ google:
     redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:3000/auth/google/callback}
 
 momo:
-  # Bật mock mode cho đồ án tốt nghiệp (không cần credentials thật)
-  # Đặt mock.enabled=true để dùng mock service
-  # Đặt mock.enabled=false để dùng MoMo thật (cần credentials)
-  mock:
-    enabled: ${MOMO_MOCK_ENABLED:true}
-  partner-code: ${MOMO_PARTNER_CODE:}
-  access-key: ${MOMO_ACCESS_KEY:}
-  secret-key: ${MOMO_SECRET_KEY:}
-  api-endpoint: ${MOMO_API_ENDPOINT:https://test-payment.momo.vn/v2/gateway/api/create}
-  return-url: ${MOMO_RETURN_URL:http://localhost:3000/payment/return}
+  # Cấu hình MoMo Real Mode cho Sandbox Environment
+  # Sử dụng test credentials từ MoMo Developer Portal
+  # Lưu ý: partner-code, access-key, secret-key là BẮT BUỘC - phải có trong file .env
+  partner-code: ${DEV_PARTNER_CODE}
+  access-key: ${DEV_ACCESS_KEY}
+  secret-key: ${DEV_SECRET_KEY}
+  # API endpoint mặc định là test environment (sandbox)
+  # Lưu ý: URL phải đầy đủ: /v2/gateway/api/create (không thiếu /create)
+  api-endpoint: ${DEV_MOMO_ENDPOINT:https://test-payment.momo.vn/v2/gateway/api/create}
+  # Return URL: Backend nhận redirect từ MoMo, sau đó redirect về frontend
+  return-url: ${RETURN_URL:http://localhost:1234/api/payments/momo/return}
+  # Notify URL: MoMo gọi callback về backend
   notify-url: ${MOMO_NOTIFY_URL:http://localhost:1234/api/payments/momo/callback}
-  request-type: ${MOMO_REQUEST_TYPE:captureWallet}
+  # Request type mặc định là captureWallet
+  request-type: ${REQUESTS_TYPE:captureWallet}
+  # Store information
+  store-name: ${MOMO_STORE_NAME:Plant Shop}
+  store-id: ${MOMO_STORE_ID:PlantShop}
+  # Ngôn ngữ mặc định là tiếng Việt
+  lang: ${MOMO_LANG:vi}
 
 mybatis:
   #link đến file config xml
