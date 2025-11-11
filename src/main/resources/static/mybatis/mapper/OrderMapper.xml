@@ -10,7 +10,8 @@
         <result column="discount_amount" property="discount_amount"/>
         <result column="final_total" property="final_total"/>
         <result column="order_date" property="order_date"/>
-        <result column="status" property="status" javaType="com.example.backendplantshop.enums.OrderSatus" />
+        <result column="status" property="status" javaType="com.example.backendplantshop.enums.OrderSatus"/>
+        <result column="shipping_status" property="shipping_status" javaType="com.example.backendplantshop.enums.ShippingStatus"/>
         <result column="created_at" property="created_at"/>
         <result column="updated_at" property="updated_at"/>
         <result column="user_id" property="user_id"/>
@@ -19,8 +20,8 @@
     </resultMap>
 
     <insert id="insert" parameterType="Orders" useGeneratedKeys="true" keyProperty="order_id">
-        INSERT INTO orders (total, discount_amount, final_total, order_date, status, created_at, updated_at, user_id, discount_id, is_deleted)
-        VALUES (#{total}, #{discount_amount}, #{final_total}, #{order_date}, #{status}, #{created_at}, #{updated_at}, #{user_id}, #{discount_id}, #{is_deleted})
+        INSERT INTO orders (total, discount_amount, final_total, order_date, status, shipping_status, created_at, updated_at, user_id, discount_id, is_deleted)
+        VALUES (#{total}, #{discount_amount}, #{final_total}, #{order_date}, #{status}, #{shipping_status}, #{created_at}, #{updated_at}, #{user_id}, #{discount_id}, #{is_deleted})
     </insert>
 
     <select id="findById" parameterType="int" resultMap="OrderResultMap">
@@ -52,6 +53,7 @@
             final_total = #{final_total},
             order_date = #{order_date},
             status = #{status},
+            shipping_status = #{shipping_status},
             updated_at = #{updated_at},
             user_id = #{user_id},
             discount_id = #{discount_id}

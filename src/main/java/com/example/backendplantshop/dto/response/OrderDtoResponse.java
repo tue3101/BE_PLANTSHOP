@@ -2,6 +2,7 @@ package com.example.backendplantshop.dto.response;
 
 import com.example.backendplantshop.dto.response.user.UserDtoResponse;
 import com.example.backendplantshop.enums.OrderSatus;
+import com.example.backendplantshop.enums.ShippingStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,6 +23,7 @@ public class OrderDtoResponse {
     private BigDecimal final_total;
     private LocalDateTime order_date;
     private OrderSatus status;
+    private ShippingStatus shipping_status;
     private LocalDateTime created_at;
     private LocalDateTime updated_at;
     private int user_id;

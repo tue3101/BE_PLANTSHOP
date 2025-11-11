@@ -11,6 +11,7 @@ import com.example.backendplantshop.entity.Products;
 import com.example.backendplantshop.entity.Users;
 import com.example.backendplantshop.enums.ErrorCode;
 import com.example.backendplantshop.enums.OrderSatus;
+import com.example.backendplantshop.enums.ShippingStatus;
 import com.example.backendplantshop.exception.AppException;
 import com.example.backendplantshop.mapper.OrderDetailMapper;
 import com.example.backendplantshop.mapper.OrderMapper;
@@ -305,7 +306,7 @@ public class ProductReviewServiceImpl implements ProductReviewService {
         
         // Lọc các đơn hàng có status DELIVERED (thành công)
         List<Orders> deliveredOrders = userOrders.stream()
-                .filter(order -> order.getStatus() == OrderSatus.DELIVERED)
+                .filter(order -> order.getShipping_status() == ShippingStatus.DELIVERED)
                 .collect(Collectors.toList());
         
         if (deliveredOrders.isEmpty()) {

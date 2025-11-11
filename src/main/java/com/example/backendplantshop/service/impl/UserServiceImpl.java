@@ -8,6 +8,7 @@ import com.example.backendplantshop.entity.Orders;
 import com.example.backendplantshop.entity.Users;
 import com.example.backendplantshop.enums.ErrorCode;
 import com.example.backendplantshop.enums.OrderSatus;
+import com.example.backendplantshop.enums.ShippingStatus;
 import com.example.backendplantshop.exception.AppException;
 import com.example.backendplantshop.mapper.*;
 import com.example.backendplantshop.service.intf.UserService;
@@ -79,6 +80,14 @@ public LoginDtoResponse update(int id, UserDtoRequest userDtoRequest) {
     userDtoRequest.setRole(clean(userDtoRequest.getRole()));
     userDtoRequest.setAddress(clean(userDtoRequest.getAddress()));
 
+    // Kiểm tra: Nếu request có trường role (không null và không rỗng), chỉ admin mới được gửi
+    // Điều này ngăn user thường cố gắng thay đổi role của mình hoặc người khác
+    if (userDtoRequest.getRole() != null && !userDtoRequest.getRole().trim().isEmpty()) {
+        if (!authService.isAdmin(role)) {
+            throw new AppException(ErrorCode.ACCESS_DENIED);
+        }
+    }
+
     // Kiểm tra trùng lặp - chỉ kiểm tra khi có giá trị
     Users duplicateEmail = userMapper.findByEmail(userDtoRequest.getEmail());
     if (duplicateEmail != null && duplicateEmail.getUser_id() != id) {
@@ -148,7 +157,7 @@ public LoginDtoResponse update(int id, UserDtoRequest userDtoRequest) {
         // Các trạng thái chưa giao thành công: PENDING_CONFIRMATION, CONFIRMED, SHIPPING
         // CANCELLED không tính vì đã hủy
         boolean hasPendingOrders = userOrders.stream()
-                .anyMatch(order -> order.getStatus() != OrderSatus.DELIVERED 
+                .anyMatch(order -> order.getShipping_status()!= ShippingStatus.DELIVERED
                         && order.getStatus() != OrderSatus.CANCELLED);
         
         if (hasPendingOrders) {

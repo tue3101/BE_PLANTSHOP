@@ -1,6 +1,7 @@
 package com.example.backendplantshop.entity;
 
 import com.example.backendplantshop.enums.OrderSatus;
+import com.example.backendplantshop.enums.ShippingStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,6 +21,7 @@ public class Orders {
     private BigDecimal final_total;
     private LocalDateTime order_date;
     private OrderSatus status;
+    private ShippingStatus shipping_status;
     private LocalDateTime created_at;
     private LocalDateTime updated_at;
 

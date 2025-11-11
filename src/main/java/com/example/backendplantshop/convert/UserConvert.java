@@ -13,11 +13,16 @@ import java.util.List;
 public class UserConvert {
 
     public static Users convertResigterDtoRequestToUsers(RegisterDtoRequest dto, PasswordEncoder passwordEncoder) {
+       
+        String role = (dto.getRole() != null && !dto.getRole().trim().isEmpty()) 
+                ? dto.getRole().trim().toUpperCase() 
+                : "USER";
+        
         return Users.builder()
                 .email(dto.getEmail())
                 .password(passwordEncoder.encode(dto.getPassword()))
                 .username(dto.getUsername())
-                .role("USER")
+                .role(role)
                 .is_deleted(false)
                 .build();
     }

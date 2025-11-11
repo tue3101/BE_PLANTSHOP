@@ -367,5 +367,38 @@ public class OrderServiceImpl implements OrderService {
         response.setOrder_details(orderDetailDtos);
         return response;
     }
+
+    @Override
+    @Transactional
+    public void deleteOrder(int orderId) {
+        int currentUserId = authService.getCurrentUserId();
+        String role = authService.getCurrentRole();
+        
+        // Kiểm tra đơn hàng tồn tại
+        Orders order = orderMapper.findById(orderId);
+        if (order == null) {
+            throw new AppException(ErrorCode.LIST_NOT_FOUND);
+        }
+
+        // Kiểm tra quyền: Admin có thể xóa bất kỳ đơn hàng nào, User chỉ có thể xóa đơn hàng của mình
+        if (authService.isUser(role) && order.getUser_id() != currentUserId) {
+            throw new AppException(ErrorCode.ACCESS_DENIED);
+        }
+
+        // Bước 1: Kiểm tra và lấy danh sách order details của order
+        List<OrderDetails> orderDetails = orderDetailMapper.findByOrderId(orderId);
+        if (orderDetails != null && !orderDetails.isEmpty()) {
+            log.info("Bắt đầu xóa {} order details của order ID: {}", orderDetails.size(), orderId);
+            // Bước 2: Xóa tất cả order details của order trước (soft delete)
+            orderDetailMapper.deleteByOrderId(orderId);
+            log.info("Đã xóa thành công tất cả order details của order ID: {}", orderId);
+        } else {
+            log.info("Order ID: {} không có order details nào", orderId);
+        }
+
+        // Bước 3: Sau khi xóa order details thành công, mới xóa order (soft delete)
+        orderMapper.delete(orderId);
+        log.info("Đã xóa thành công order ID: {}", orderId);
+    }
 }
 

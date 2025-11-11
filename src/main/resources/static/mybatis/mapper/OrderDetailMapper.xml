@@ -22,7 +22,7 @@
         VALUES (#{quantity}, #{price_at_order}, #{sub_total}, #{note}, #{created_at}, #{updated_at}, #{product_id}, #{order_id}, #{is_deleted})
     </insert>
 
-    <select id="findById" parameterType="int" resultMap="OrderDetailResultMap">
+    <select id="findById" parameterType="int" resultMap="OrderDetailResultMap">w
         SELECT *
         FROM order_details
         WHERE order_detail_id = #{orderDetailID}
@@ -52,6 +52,12 @@
         UPDATE order_details
         SET is_deleted = 1
         WHERE order_detail_id = #{orderDetailID}
+    </update>
+
+    <update id="deleteByOrderId" parameterType="int">
+        UPDATE order_details
+        SET is_deleted = 1
+        WHERE order_id = #{orderID}
     </update>
 </mapper>
 

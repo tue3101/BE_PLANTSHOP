@@ -12,5 +12,6 @@ public interface OrderService {
     List<OrderDtoResponse> getOrdersByUserId(int userId);
     List<OrderDtoResponse> getAllOrders();
     OrderDtoResponse updateOrderStatus(int orderId, UpdateOrderStatusDtoRequest request);
+    void deleteOrder(int orderId);
 }
 

@@ -18,7 +18,6 @@ public class RegisterDtoRequest {
     private String email;
     @Size(min = 8, max = 20, message = "Mật khẩu phải tối thiểu 8 kí tự!")
     private String password;
-
-
+    private String role; // Optional: chỉ admin mới được set role khi đăng ký
 
 }

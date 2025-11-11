@@ -13,5 +13,6 @@ public interface OrderDetailMapper {
     List<OrderDetails> findByOrderId(@Param("orderID") int orderId);
     void update(OrderDetails orderDetail);
     void delete(@Param("orderDetailID") int orderDetailId);
+    void deleteByOrderId(@Param("orderID") int orderId);
 }
 

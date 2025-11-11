@@ -75,5 +75,15 @@ public class OrderController {
                 .data(order)
                 .build();
     }
+
+    @DeleteMapping("/{orderId}")
+    public ApiResponse<Void> deleteOrder(@PathVariable("orderId") int orderId) {
+        orderService.deleteOrder(orderId);
+        return ApiResponse.<Void>builder()
+                .statusCode(ErrorCode.DELETE_SUCCESSFULL.getCode())
+                .success(Boolean.TRUE)
+                .message(ErrorCode.DELETE_SUCCESSFULL.getMessage())
+                .build();
+    }
 }
 

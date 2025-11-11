@@ -9,6 +9,7 @@ import com.example.backendplantshop.entity.OrderDetails;
 import com.example.backendplantshop.entity.Orders;
 import com.example.backendplantshop.entity.Products;
 import com.example.backendplantshop.enums.OrderSatus;
+import com.example.backendplantshop.enums.ShippingStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -38,6 +39,7 @@ public class OrderConvert {
                 .final_total(request.getFinal_total())
                 .order_date(now)
                 .status(OrderSatus.PENDING_CONFIRMATION)
+                .shipping_status(ShippingStatus.PREPARING_ORDER)
                 .created_at(now)
                 .updated_at(now)
                 .user_id(userId)
@@ -58,6 +60,7 @@ public class OrderConvert {
                 .final_total(order.getFinal_total())
                 .order_date(order.getOrder_date())
                 .status(order.getStatus())
+                .shipping_status(order.getShipping_status())
                 .created_at(order.getCreated_at())
                 .updated_at(order.getUpdated_at())
                 .user_id(order.getUser_id())
