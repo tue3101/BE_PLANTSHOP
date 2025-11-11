@@ -34,6 +34,7 @@ public enum ErrorCode {
     USER_NOT_EXISTS(1002, "user không tồn tại"),
     INVALID_CREDENTIALS(401, "mật khẩu không đúng"),
     ACCOUNT_DISABLED(403, "tài khoản của bạn đã bị vô hiệu hóa"),
+    INVALID_OTP(403, "Mã OTP không hợp lệ hoặc đã hết hạn. Vui lòng thử lại"),
 
 //    =========================================================================
 
@@ -67,6 +68,7 @@ public enum ErrorCode {
 
     QUANTITY_IS_NOT_ENOUGH(1004, "số lượng sản phẩm trong kho không đủ"),
     INVALID_QUANTITY(1004, "số lượng sản phẩm phải >=1"),
+    INVALID_ORDER_STATUS_COMBINATION(1005, "Trạng thái không hợp lệ"),
 
 
 //    ========================================================================

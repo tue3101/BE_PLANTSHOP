@@ -39,7 +39,7 @@ public class OrderConvert {
                 .final_total(request.getFinal_total())
                 .order_date(now)
                 .status(OrderSatus.PENDING_CONFIRMATION)
-                .shipping_status(ShippingStatus.PREPARING_ORDER)
+                .shipping_status(ShippingStatus.UNDELIVERED) 
                 .created_at(now)
                 .updated_at(now)
                 .user_id(userId)

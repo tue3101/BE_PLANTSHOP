@@ -5,6 +5,10 @@ import com.example.backendplantshop.dto.request.users.ChangePasswordDtoRequest;
 import com.example.backendplantshop.dto.request.users.GoogleLoginDtoRequest;
 import com.example.backendplantshop.dto.request.users.LoginDtoRequest;
 import com.example.backendplantshop.dto.request.users.RegisterDtoRequest;
+import com.example.backendplantshop.dto.request.users.SendOtpDtoRequest;
+import com.example.backendplantshop.dto.request.users.SendOtpRegisterDtoRequest;
+import com.example.backendplantshop.dto.request.users.VerifyOtpDtoRequest;
+import com.example.backendplantshop.dto.request.users.ForgotPasswordDtoRequest;
 import com.example.backendplantshop.dto.response.user.LoginDtoResponse;
 import com.example.backendplantshop.dto.response.user.RegisterDtoResponse;
 import com.example.backendplantshop.entity.UserTokens;
@@ -16,6 +20,7 @@ import com.example.backendplantshop.security.JwtUtil;
 import com.example.backendplantshop.service.impl.GoogleAuthService;
 import com.example.backendplantshop.service.intf.AuthenticationService;
 import com.example.backendplantshop.service.intf.UserTokenService;
+import com.example.backendplantshop.service.intf.OtpService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -36,6 +41,7 @@ public class AuthServiceImpl implements AuthenticationService {
     private final JwtUtil jwtUtil;
     private final UserTokenService userTokenService;
     private final GoogleAuthService googleAuthService;
+    private final OtpService otpService;
 
     public String clean(String input) {
         return (input != null && !input.trim().isEmpty()) ? input : null;
@@ -83,6 +89,16 @@ public class AuthServiceImpl implements AuthenticationService {
         // Làm sạch dữ liệu: nếu email hoặc phone_number là chuỗi rỗng hoặc chỉ chứa khoảng trắng thì gán null
         registerDtoRequest.setEmail(clean(registerDtoRequest.getEmail()));
 
+        // Xác thực OTP trước khi đăng ký
+        if (registerDtoRequest.getOtpCode() == null || registerDtoRequest.getOtpCode().trim().isEmpty()) {
+            throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
+        }
+        
+        boolean isOtpValid = otpService.verifyOtp(registerDtoRequest.getEmail(), registerDtoRequest.getOtpCode());
+        if (!isOtpValid) {
+            throw new AppException(ErrorCode.INVALID_OTP);
+        }
+
         // Kiểm tra email
         Users existingUserByEmail = userMapper.findByEmailIgnoreDeleted(registerDtoRequest.getEmail());
         if (existingUserByEmail != null) {
@@ -96,7 +112,6 @@ public class AuthServiceImpl implements AuthenticationService {
             }
         }
 
-
         if (userMapper.findByUsername(registerDtoRequest.getUsername()) != null) {
             throw new AppException(ErrorCode.USERNAME_ALREADY_EXISTS);
         }
@@ -104,8 +119,70 @@ public class AuthServiceImpl implements AuthenticationService {
         Users users = UserConvert.convertResigterDtoRequestToUsers(registerDtoRequest, passwordEncoder);
         userMapper.insert(users);
 
+        // Đánh dấu OTP đã sử dụng và cập nhật user_id sau khi đăng ký thành công
+        try {
+            otpService.markOtpAsUsed(registerDtoRequest.getEmail(), registerDtoRequest.getOtpCode());
+            otpService.updateUserIdForOtp(registerDtoRequest.getEmail(), registerDtoRequest.getOtpCode(), users.getUser_id());
+            log.info("Đã mark OTP và cập nhật user_id = {} cho OTP đăng ký của email: {}", users.getUser_id(), registerDtoRequest.getEmail());
+        } catch (Exception e) {
+            log.warn("Không thể mark OTP hoặc cập nhật user_id cho OTP của email {}: {}", registerDtoRequest.getEmail(), e.getMessage());
+            // Không throw exception để không rollback đăng ký
+        }
+
+        log.info("Đã đăng ký thành công user với email: {}", registerDtoRequest.getEmail());
         // Trả về thông tin user đã đăng ký
         return UserConvert.convertUsersToRegisterDtoResponse(users);
+    }
+
+    @Override
+    public void sendOtpForRegister(SendOtpRegisterDtoRequest request) {
+        if (request == null) {
+            throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
+        }
+
+        // Validate các trường bắt buộc
+        if (request.getUsername() == null || request.getUsername().trim().isEmpty()) {
+            throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
+        }
+        if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+            throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
+        }
+        if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
+            throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
+        }
+
+        // Validate độ dài password
+        if (request.getPassword().length() < 8 || request.getPassword().length() > 20) {
+            throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
+        }
+
+        String email = clean(request.getEmail());
+        String username = clean(request.getUsername());
+
+        // Kiểm tra email đã được đăng ký chưa
+        Users existingUserByEmail = userMapper.findByEmailIgnoreDeleted(email);
+        if (existingUserByEmail != null && (existingUserByEmail.getIs_deleted() == null || !existingUserByEmail.getIs_deleted())) {
+            throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
+        }
+
+        // Kiểm tra username đã tồn tại chưa
+        Users existingUserByUsername = userMapper.findByUsername(username);
+        if (existingUserByUsername != null) {
+            throw new AppException(ErrorCode.USERNAME_ALREADY_EXISTS);
+        }
+
+        // Gửi OTP
+        otpService.generateAndSendOtp(email);
+        log.info("Đã gửi OTP đăng ký đến email: {} với username: {}", email, username);
+    }
+
+    public boolean verifyOtp(VerifyOtpDtoRequest request) {
+        if (request == null || request.getEmail() == null || request.getOtpCode() == null) {
+            throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
+        }
+
+        String email = clean(request.getEmail());
+        return otpService.verifyOtp(email, request.getOtpCode());
     }
 
 
@@ -155,36 +232,65 @@ public class AuthServiceImpl implements AuthenticationService {
                 ? authHeader.substring(7)
                 : null;
 
-        if (token == null) {
+        if (token == null || token.trim().isEmpty()) {
+            log.warn("Refresh token không tồn tại hoặc rỗng");
+            throw new AppException(ErrorCode.TOKEN_NOT_EXISTS);
+        }
+
+        // Validate refresh token: phải hợp lệ và phải là refresh token
+        if (!jwtUtil.validateToken(token)) {
+            log.warn("Refresh token không hợp lệ hoặc đã hết hạn");
+            throw new AppException(ErrorCode.TOKEN_HAS_EXPIRED);
+        }
+
+        if (!jwtUtil.isRefreshToken(token)) {
+            log.warn("Token không phải là refresh token");
             throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
         }
 
-        // Validate refresh token
-//        if (!jwtUtil.validateToken(token) || !jwtUtil.isRefreshToken(token)) {
-//            throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
-//        }
-
-        int id = jwtUtil.extractUserId(token);
-        String role = jwtUtil.extractRole(token);
+        // Extract thông tin từ token (sau khi đã validate)
+        int id;
+        String role;
+        try {
+            id = jwtUtil.extractUserId(token);
+            role = jwtUtil.extractRole(token);
+        } catch (Exception e) {
+            log.error("Lỗi khi extract thông tin từ refresh token: {}", e.getMessage(), e);
+            throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
+        }
 
         // Lấy token cũ từ DB (chưa revoke)
         UserTokens existing = userTokenService.findTokenByUser(id);
-        if (existing == null || Boolean.TRUE.equals(existing.getRevoked())) {
+        if (existing == null) {
+            log.warn("Không tìm thấy refresh token trong DB cho user ID: {}", id);
+            throw new AppException(ErrorCode.TOKEN_NOT_EXISTS);
+        }
+
+        if (Boolean.TRUE.equals(existing.getRevoked())) {
+            log.warn("Refresh token đã bị revoke cho user ID: {}", id);
             throw new AppException(ErrorCode.TOKEN_REVOKED);
         }
-        // revoke token cũ
-        if (existing.getExpires_at().isBefore(LocalDateTime.now())) {
+
+        // Kiểm tra token trong DB đã hết hạn chưa
+        if (existing.getExpires_at() != null && existing.getExpires_at().isBefore(LocalDateTime.now())) {
+            log.warn("Refresh token trong DB đã hết hạn cho user ID: {}", id);
             userTokenService.revokeTokensByUser(id);
             throw new AppException(ErrorCode.TOKEN_HAS_EXPIRED);
         }
 
-        // Nếu refresh token chưa hết hạn thì trả về lại refresh token cũ
+        // Kiểm tra token từ header có khớp với token trong DB không
+        if (!token.equals(existing.getToken())) {
+            log.warn("Refresh token không khớp với token trong DB cho user ID: {}", id);
+            throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
+        }
+
+        // Nếu refresh token chưa hết hạn thì tạo access token mới và trả về lại refresh token cũ
         String newAccessToken = jwtUtil.generateAccessToken(id, role);
+        log.info("Đã làm mới access token cho user ID: {}", id);
         return LoginDtoResponse.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(existing.getToken())
                 .build();
-
     }
 
     //    @Override
@@ -254,7 +360,118 @@ public class AuthServiceImpl implements AuthenticationService {
             throw new AppException(ErrorCode.CHANGEPASSWORD_FAILED);
         }
 
+        // Thu hồi tất cả các token của user sau khi đổi mật khẩu
+        userTokenService.revokeTokensByUser(currentUserId);
+        log.info("User ID: {} đã đổi mật khẩu thành công và tất cả token đã bị thu hồi", currentUserId);
+    }
 
+    @Override
+    public void sendOtpForgotPassword(SendOtpDtoRequest request) {
+        if (request == null || request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+            throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
+        }
+
+        String email = clean(request.getEmail());
+        
+        // Kiểm tra email PHẢI TỒN TẠI (ngược với register)
+        Users existingUser = userMapper.findByEmailIgnoreDeleted(email);
+        if (existingUser == null || (existingUser.getIs_deleted() != null && existingUser.getIs_deleted())) {
+            throw new AppException(ErrorCode.USER_NOT_EXISTS);
+        }
+
+        // Gửi OTP với user_id (vì user đã tồn tại)
+        otpService.generateAndSendOtp(email, existingUser.getUser_id());
+        log.info("Đã gửi OTP quên mật khẩu đến email: {} cho user_id: {}", email, existingUser.getUser_id());
+    }
+
+    @Override
+    public void resetPassword(ForgotPasswordDtoRequest request) {
+        // Trường hợp 1: Chưa đăng nhập - Reset password bằng OTP
+        if (request == null) {
+            throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
+        }
+
+        String email = clean(request.getEmail());
+        
+        // Validate các trường bắt buộc
+        if (email == null || request.getOtpCode() == null || request.getNewPassword() == null) {
+            throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
+        }
+
+        // Kiểm tra email tồn tại
+        Users user = userMapper.findByEmailIgnoreDeleted(email);
+        if (user == null || (user.getIs_deleted() != null && user.getIs_deleted())) {
+            throw new AppException(ErrorCode.USER_NOT_EXISTS);
+        }
+
+        // Xác thực OTP (chỉ verify, chưa mark as used)
+        // Lưu ý: OTP có thể được verify nhiều lần trước khi reset password thành công
+        boolean isOtpValid = otpService.verifyOtp(email, request.getOtpCode());
+        if (!isOtpValid) {
+            log.warn("OTP không hợp lệ cho email: {} với OTP: {}", email, request.getOtpCode());
+            throw new AppException(ErrorCode.INVALID_OTP);
+        }
+        
+        log.info("OTP đã được verify thành công cho email: {}, đang tiến hành reset password", email);
+
+        // Cập nhật mật khẩu
+        updateUserPassword(user.getUser_id(), request.getNewPassword());
+        
+        // Đánh dấu OTP đã sử dụng sau khi reset password thành công
+        try {
+            otpService.markOtpAsUsed(email, request.getOtpCode());
+            log.info("Đã mark OTP đã sử dụng cho email: {}", email);
+        } catch (Exception e) {
+            log.warn("Không thể mark OTP cho email {}: {}", email, e.getMessage());
+            // Không throw exception vì password đã được reset thành công
+        }
+        
+        log.info("User ID: {} đã reset mật khẩu bằng OTP thành công", user.getUser_id());
+    }
+
+    @Override
+    public void resetPassword(String authHeader, ForgotPasswordDtoRequest request) {
+        // Trường hợp 2: Đã đăng nhập - Reset password bằng token (không cần OTP)
+        if (request == null || request.getNewPassword() == null) {
+            throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
+        }
+
+        // Lấy token từ Authorization header
+        String token = (authHeader != null && authHeader.startsWith("Bearer "))
+                ? authHeader.substring(7)
+                : null;
+
+        if (token == null) {
+            throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
+        }
+
+        // Lấy thông tin user từ token
+        int currentUserId = jwtUtil.extractUserId(token);
+
+        // Kiểm tra user tồn tại
+        Users user = userMapper.findById(currentUserId);
+        if (user == null) {
+            throw new AppException(ErrorCode.USER_NOT_EXISTS);
+        }
+
+        // Cập nhật mật khẩu (không cần OTP vì đã có token xác thực)
+        updateUserPassword(currentUserId, request.getNewPassword());
+        log.info("User ID: {} đã reset mật khẩu bằng token thành công", currentUserId);
+    }
+
+    /**
+     * Helper method: Cập nhật mật khẩu và thu hồi tất cả token
+     */
+    private void updateUserPassword(int userId, String newPassword) {
+        // Mã hóa mật khẩu mới và cập nhật
+        String encodedNewPassword = passwordEncoder.encode(newPassword);
+        int rows = userMapper.changePassword(userId, encodedNewPassword);
+        if (rows == 0) {
+            throw new AppException(ErrorCode.CHANGEPASSWORD_FAILED);
+        }
+
+        // Thu hồi tất cả các token của user sau khi reset mật khẩu
+        userTokenService.revokeTokensByUser(userId);
     }
 
 

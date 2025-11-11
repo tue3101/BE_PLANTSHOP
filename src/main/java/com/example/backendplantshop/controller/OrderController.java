@@ -2,6 +2,7 @@ package com.example.backendplantshop.controller;
 
 import com.example.backendplantshop.dto.request.OrderDtoRequest;
 import com.example.backendplantshop.dto.request.UpdateOrderStatusDtoRequest;
+import com.example.backendplantshop.dto.request.UpdateShippingStatusDtoRequest;
 import com.example.backendplantshop.dto.response.ApiResponse;
 import com.example.backendplantshop.dto.response.OrderDtoResponse;
 import com.example.backendplantshop.enums.ErrorCode;
@@ -68,6 +69,19 @@ public class OrderController {
             @PathVariable("orderId") int orderId,
             @Valid @RequestBody UpdateOrderStatusDtoRequest request) {
         OrderDtoResponse order = orderService.updateOrderStatus(orderId, request);
+        return ApiResponse.<OrderDtoResponse>builder()
+                .statusCode(ErrorCode.UPDATE_SUCCESSFULL.getCode())
+                .success(Boolean.TRUE)
+                .message(ErrorCode.UPDATE_SUCCESSFULL.getMessage())
+                .data(order)
+                .build();
+    }
+
+    @PutMapping("/{orderId}/shipping-status")
+    public ApiResponse<OrderDtoResponse> updateShippingStatus(
+            @PathVariable("orderId") int orderId,
+            @Valid @RequestBody UpdateShippingStatusDtoRequest request) {
+        OrderDtoResponse order = orderService.updateShippingStatus(orderId, request);
         return ApiResponse.<OrderDtoResponse>builder()
                 .statusCode(ErrorCode.UPDATE_SUCCESSFULL.getCode())
                 .success(Boolean.TRUE)

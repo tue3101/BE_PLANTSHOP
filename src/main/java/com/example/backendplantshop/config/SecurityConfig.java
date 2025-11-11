@@ -41,7 +41,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource)) // Bật CORS
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) //dùng lambda (biến -> bthuc/khối lệnh) , ko tạo session và ko dùng
                 .authorizeHttpRequests(auth -> auth //cấu hình phân quyền bằng lambda
-                        .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh", "/api/auth/google").permitAll() //cho phép truy cập tự do ko cần JWT
+                        .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh", "/api/auth/google", "/api/auth/send-otp-register", "/api/auth/verify-otp", "/api/auth/forgot-password/**").permitAll() //cho phép truy cập tự do ko cần JWT
                         .requestMatchers("/api/payments/momo/callback", "/api/payments/momo/return").permitAll() //cho phép MoMo callback công khai
                         .anyRequest().authenticated() //mọi request ngoài ds trên phải được xác thực JWT
                 )

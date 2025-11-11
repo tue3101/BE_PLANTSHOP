@@ -4,11 +4,15 @@ import com.example.backendplantshop.convert.PaymentConvert;
 import com.example.backendplantshop.dto.request.PaymentDtoRequest;
 import com.example.backendplantshop.dto.response.PaymentDtoResponse;
 import com.example.backendplantshop.dto.response.PaymentMethodDtoResponse;
+import com.example.backendplantshop.entity.Orders;
 import com.example.backendplantshop.entity.Payment;
 import com.example.backendplantshop.entity.PaymentMethod;
 import com.example.backendplantshop.enums.ErrorCode;
+import com.example.backendplantshop.enums.OrderSatus;
 import com.example.backendplantshop.enums.PaymentStatus;
+import com.example.backendplantshop.enums.ShippingStatus;
 import com.example.backendplantshop.exception.AppException;
+import com.example.backendplantshop.mapper.OrderMapper;
 import com.example.backendplantshop.mapper.PaymentMapper;
 import com.example.backendplantshop.mapper.PaymentMethodMapper;
 import com.example.backendplantshop.service.intf.PaymentService;
@@ -29,6 +33,7 @@ public class PaymentServiceImpl implements PaymentService {
     
     private final PaymentMapper paymentMapper;
     private final PaymentMethodMapper paymentMethodMapper;
+    private final OrderMapper orderMapper;
     
     @Override
     @Transactional
@@ -96,6 +101,54 @@ public class PaymentServiceImpl implements PaymentService {
                 .collect(Collectors.toList());
     }
     
+    /**
+     * Helper method: Validate logic giữa order status, shipping status và payment status
+     * (Tương tự như trong OrderServiceImpl)
+     */
+    private void validateOrderStatusLogic(OrderSatus orderStatus, ShippingStatus shippingStatus, PaymentStatus paymentStatus) {
+        // 1. PENDING_CONFIRMATION + SHIPPING/DELIVERED → Không hợp lý
+        if (orderStatus == OrderSatus.PENDING_CONFIRMATION) {
+            if (shippingStatus == ShippingStatus.SHIPPING || shippingStatus == ShippingStatus.DELIVERED) {
+                throw new AppException(ErrorCode.INVALID_ORDER_STATUS_COMBINATION);
+            }
+        }
+
+        // 2. PENDING_CONFIRMATION + PREPARING_ORDER → Không hợp lý
+        if (orderStatus == OrderSatus.PENDING_CONFIRMATION && shippingStatus == ShippingStatus.PREPARING_ORDER) {
+            throw new AppException(ErrorCode.INVALID_ORDER_STATUS_COMBINATION);
+        }
+
+        // 3. PENDING_CONFIRMATION + payment SUCCESS → Không hợp lý (đơn chưa xác nhận thì không thể thanh toán thành công)
+        // Lưu ý: Nếu payment thành công, order status nên được tự động cập nhật thành CONFIRMED
+        if (orderStatus == OrderSatus.PENDING_CONFIRMATION && paymentStatus == PaymentStatus.SUCCESS) {
+            throw new AppException(ErrorCode.INVALID_ORDER_STATUS_COMBINATION);
+        }
+
+        // 4. CONFIRMED + DELIVERED + FAILED → Không hợp lý (giao hàng thành công mà thanh toán thất bại)
+        if (orderStatus == OrderSatus.CONFIRMED && shippingStatus == ShippingStatus.DELIVERED && paymentStatus == PaymentStatus.FAILED) {
+            throw new AppException(ErrorCode.INVALID_ORDER_STATUS_COMBINATION);
+        }
+
+        // 5. CANCELLED + SHIPPING/DELIVERED/PREPARING_ORDER → Không hợp lý
+        if (orderStatus == OrderSatus.CANCELLED) {
+            if (shippingStatus == ShippingStatus.SHIPPING || 
+                shippingStatus == ShippingStatus.DELIVERED || 
+                shippingStatus == ShippingStatus.PREPARING_ORDER) {
+                throw new AppException(ErrorCode.INVALID_ORDER_STATUS_COMBINATION);
+            }
+        }
+
+        // 6. CANCELLED + payment SUCCESS → Không hợp lý (đơn đã hủy thì không thể thanh toán thành công)
+        if (orderStatus == OrderSatus.CANCELLED && paymentStatus == PaymentStatus.SUCCESS) {
+            throw new AppException(ErrorCode.INVALID_ORDER_STATUS_COMBINATION);
+        }
+
+        // 7. CONFIRMED + CANCELLED (shipping) + SUCCESS → Không hợp lý
+        if (orderStatus == OrderSatus.CONFIRMED && shippingStatus == ShippingStatus.CANCELLED && paymentStatus == PaymentStatus.SUCCESS) {
+            throw new AppException(ErrorCode.INVALID_ORDER_STATUS_COMBINATION);
+        }
+    }
+    
     @Override
     @Transactional
     public PaymentDtoResponse updatePaymentStatus(int paymentId, PaymentStatus status) {
@@ -103,6 +156,35 @@ public class PaymentServiceImpl implements PaymentService {
         if (payment == null) {
             throw new AppException(ErrorCode.LIST_NOT_FOUND);
         }
+        
+        // Lấy thông tin order để validate
+        Orders order = orderMapper.findById(payment.getOrder_id());
+        if (order == null) {
+            throw new AppException(ErrorCode.LIST_NOT_FOUND);
+        }
+        
+        // Lấy payment status mới sau khi update (tạm thời dùng status mới)
+        // Lưu ý: Cần lấy payment status từ tất cả payments của order
+        List<Payment> allPayments = paymentMapper.findByOrderId(payment.getOrder_id());
+        PaymentStatus effectivePaymentStatus = status; // Status mới sẽ được set
+        
+        // Nếu có payment SUCCESS khác, ưu tiên SUCCESS
+        if (status != PaymentStatus.SUCCESS) {
+            Payment successPayment = allPayments.stream()
+                    .filter(p -> p.getPayment_id() != paymentId && p.getStatus() == PaymentStatus.SUCCESS)
+                    .findFirst()
+                    .orElse(null);
+            if (successPayment != null) {
+                effectivePaymentStatus = PaymentStatus.SUCCESS;
+            }
+        }
+        
+        // Validate logic trước khi update
+        ShippingStatus currentShippingStatus = order.getShipping_status() != null 
+                ? order.getShipping_status() 
+                : ShippingStatus.UNDELIVERED;
+        
+        validateOrderStatusLogic(order.getStatus(), currentShippingStatus, effectivePaymentStatus);
         
         // Cập nhật status
         payment.setStatus(status);
