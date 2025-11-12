@@ -65,5 +65,83 @@
         SET is_deleted = 1
         WHERE order_id = #{orderID}
     </update>
+
+    <!-- Statistics by date -->
+    <select id="getStatisticsByDate" resultType="map">
+        SELECT 
+            COALESCE(SUM(o.final_total), 0) as totalRevenue,
+            COUNT(*) as totalOrders,
+            COUNT(*) as completedOrders,
+            0 as cancelledOrders,
+            CASE 
+                WHEN COUNT(*) > 0 THEN COALESCE(SUM(o.final_total), 0) / COUNT(*)
+                ELSE 0 
+            END as averageOrderValue
+        FROM orders o
+        WHERE o.is_deleted = 0
+        AND o.status = 'CONFIRMED'
+        AND o.shipping_status = 'DELIVERED'
+        AND EXISTS (
+            SELECT 1 
+            FROM payment p 
+            WHERE p.order_id = o.order_id 
+            AND p.is_deleted = 0 
+            AND p.status = 'SUCCESS'
+        )
+        AND YEAR(o.order_date) = #{year}
+        AND MONTH(o.order_date) = #{month}
+        AND DAY(o.order_date) = #{day}
+    </select>
+
+    <!-- Statistics by month -->
+    <select id="getStatisticsByMonth" resultType="map">
+        SELECT 
+            COALESCE(SUM(o.final_total), 0) as totalRevenue,
+            COUNT(*) as totalOrders,
+            COUNT(*) as completedOrders,
+            0 as cancelledOrders,
+            CASE 
+                WHEN COUNT(*) > 0 THEN COALESCE(SUM(o.final_total), 0) / COUNT(*)
+                ELSE 0 
+            END as averageOrderValue
+        FROM orders o
+        WHERE o.is_deleted = 0
+        AND o.status = 'CONFIRMED'
+        AND o.shipping_status = 'DELIVERED'
+        AND EXISTS (
+            SELECT 1 
+            FROM payment p 
+            WHERE p.order_id = o.order_id 
+            AND p.is_deleted = 0 
+            AND p.status = 'SUCCESS'
+        )
+        AND YEAR(o.order_date) = #{year}
+        AND MONTH(o.order_date) = #{month}
+    </select>
+
+    <!-- Statistics by year -->
+    <select id="getStatisticsByYear" resultType="map">
+        SELECT 
+            COALESCE(SUM(o.final_total), 0) as totalRevenue,
+            COUNT(*) as totalOrders,
+            COUNT(*) as completedOrders,
+            0 as cancelledOrders,
+            CASE 
+                WHEN COUNT(*) > 0 THEN COALESCE(SUM(o.final_total), 0) / COUNT(*)
+                ELSE 0 
+            END as averageOrderValue
+        FROM orders o
+        WHERE o.is_deleted = 0
+        AND o.status = 'CONFIRMED'
+        AND o.shipping_status = 'DELIVERED'
+        AND EXISTS (
+            SELECT 1 
+            FROM payment p 
+            WHERE p.order_id = o.order_id 
+            AND p.is_deleted = 0 
+            AND p.status = 'SUCCESS'
+        )
+        AND YEAR(o.order_date) = #{year}
+    </select>
 </mapper>
 
