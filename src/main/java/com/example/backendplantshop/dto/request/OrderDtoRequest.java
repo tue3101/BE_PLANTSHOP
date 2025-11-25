@@ -31,6 +31,16 @@ public class OrderDtoRequest {
     @Valid
     private List<OrderDetailDtoRequest> items;
     
+    // Thông tin giao hàng
+    @NotNull(message = "Tên người nhận không được để trống")
+    private String shipping_name;
+    
+    @NotNull(message = "Địa chỉ giao hàng không được để trống")
+    private String shipping_address;
+    
+    @NotNull(message = "Số điện thoại người nhận không được để trống")
+    private String shipping_phone;
+    
     // Thông tin thanh toán (do FE gửi)
     @Valid
     private PaymentDtoRequest payment;

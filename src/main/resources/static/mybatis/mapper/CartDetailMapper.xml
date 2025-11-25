@@ -69,7 +69,7 @@
           AND is_deleted = 0
     </select>
 
-    <!-- Lấy số lượng tồn kho của sản phẩm -->
+    <!-- Lấy số lượng hiện có của sản phẩm -->
     <select id="findProductQuantityInStock" parameterType="int" resultType="int">
         SELECT quantity FROM products WHERE product_id = #{productID}
     </select>

@@ -14,11 +14,25 @@
         <result column="is_deleted" property="is_deleted"/>
     </resultMap>
 
-    <insert id="insert" parameterType="EmailOtp" useGeneratedKeys="true" keyProperty="otp_id">
-        INSERT INTO user_otp (email, user_id, otp_code, created_at, expires_at, is_deleted)
-        VALUES (#{email}, #{user_id, jdbcType=INTEGER}, #{otp_code}, #{created_at}, #{expires_at}, #{is_deleted})
+
+<!--    tại vì khi đăng ký tk mới gửi otp xác nhận thì lúc này chưa có user_id nên sẽ bị set là null khi tạo otp => lỗi runtime và jdbcType=INTEGER sẽ giải quyết điều đó-->
+    <insert id="insertOtp" parameterType="EmailOtp" useGeneratedKeys="true" keyProperty="otp_id">
+        INSERT INTO user_otp (email,
+                              user_id,
+                              otp_code,
+                              created_at,
+                              expires_at,
+                              is_deleted)
+        VALUES (#{email},
+                #{user_id, jdbcType=INTEGER},
+                #{otp_code},
+                #{created_at},
+                #{expires_at},
+                #{is_deleted})
     </insert>
 
+
+<!--    xác thực otp-->
     <select id="findByEmailAndOtp" resultMap="EmailOtpResultMap">
         SELECT *
         FROM user_otp
@@ -30,14 +44,14 @@
         LIMIT 1
     </select>
 
-    <select id="findLatestByEmail" resultMap="EmailOtpResultMap">
-        SELECT *
-        FROM user_otp
-        WHERE email = #{email}
-        AND is_deleted = 0
-        ORDER BY created_at DESC
-        LIMIT 1
-    </select>
+<!--    <select id="findLatestByEmail" resultMap="EmailOtpResultMap">-->
+<!--        SELECT *-->
+<!--        FROM user_otp-->
+<!--        WHERE email = #{email}-->
+<!--        AND is_deleted = 0-->
+<!--        ORDER BY created_at DESC-->
+<!--        LIMIT 1-->
+<!--    </select>-->
 
     <update id="markAsUsed" parameterType="int">
         UPDATE user_otp
@@ -45,12 +59,14 @@
         WHERE otp_id = #{otpId}
     </update>
 
-    <delete id="deleteExpiredOtps">
-        DELETE FROM user_otp
-        WHERE expires_at &lt; CURRENT_TIMESTAMP
-        OR (is_deleted = 1 AND created_at &lt; DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 DAY))
-    </delete>
+<!--    <delete id="deleteExpiredOtps">-->
+<!--        DELETE FROM user_otp-->
+<!--        WHERE expires_at &lt; CURRENT_TIMESTAMP-->
+<!--        OR (is_deleted = 1 AND created_at &lt; DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 DAY))-->
+<!--    </delete>-->
 
+
+<!--    sau khi đk thành công thì cập nhật lại user_id cho otp đó-->
     <update id="updateUserIdByEmailAndOtp">
         UPDATE user_otp
         SET user_id = #{userId}
@@ -58,7 +74,9 @@
         AND otp_code = #{otpCode}
         AND is_deleted = 1
     </update>
-    
+
+
+<!--    tìm otp mới nhất của mail để kiểm tra otp xác nhận cho đk hoặc quên mk-->
     <select id="findByEmailAndOtpForMark" resultMap="EmailOtpResultMap">
         SELECT *
         FROM user_otp

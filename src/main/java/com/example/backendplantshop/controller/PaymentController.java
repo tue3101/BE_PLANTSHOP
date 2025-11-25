@@ -8,6 +8,7 @@ import com.example.backendplantshop.dto.response.PaymentDtoResponse;
 import com.example.backendplantshop.dto.response.momo.CreatePaymentResponse;
 import com.example.backendplantshop.enums.ErrorCode;
 import com.example.backendplantshop.enums.OrderSatus;
+import com.example.backendplantshop.enums.PaymentStatus;
 import com.example.backendplantshop.config.MoMoConfig;
 import com.example.backendplantshop.service.intf.MoMoService;
 import com.example.backendplantshop.service.intf.OrderService;
@@ -20,6 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Slf4j
@@ -164,43 +167,33 @@ public class PaymentController {
                 return ResponseEntity.badRequest().body("{\"status\":\"invalid_signature\"}");
             }
             
+            Integer orderId = extractOrderId(callbackRequest.getOrderId());
+            if (orderId == null) {
+                log.error("Không thể parse orderId từ giá trị: {}", callbackRequest.getOrderId());
+            }
+            
             // Xử lý kết quả thanh toán
             if (callbackRequest.getResultCode() != null && callbackRequest.getResultCode() == 0) {
                 // Thanh toán thành công
                 try {
-                    // Parse orderId từ MoMo (format: ORDER_{orderId}_{timestamp})
-                    // Ví dụ: ORDER_35_1733831974000 -> orderId = 35
-                    String momoOrderId = callbackRequest.getOrderId();
-                    int orderId;
-                    
-                    if (momoOrderId != null && momoOrderId.startsWith("ORDER_")) {
-                        // Format mới: ORDER_{orderId}_{timestamp}
-                        String[] parts = momoOrderId.split("_");
-                        if (parts.length >= 2) {
-                            orderId = Integer.parseInt(parts[1]);
-                        } else {
-                            // Fallback: thử parse trực tiếp
-                            orderId = Integer.parseInt(momoOrderId);
-                        }
-                    } else {
-                        // Format cũ: chỉ là số (backward compatibility)
-                        orderId = Integer.parseInt(momoOrderId);
+                    if (orderId != null) {
+                        paymentService.updatePaymentsByOrderId(orderId, PaymentStatus.SUCCESS);
+                        com.example.backendplantshop.dto.request.UpdateOrderStatusDtoRequest statusRequest = 
+                                com.example.backendplantshop.dto.request.UpdateOrderStatusDtoRequest.builder()
+                                        .status(OrderSatus.CONFIRMED)
+                                        .build();
+                        orderService.updateOrderStatus(orderId, statusRequest);
+                        log.info("Đã cập nhật trạng thái đơn hàng {} thành công sau khi thanh toán", orderId);
                     }
-                    
-                    log.info("Parse orderId từ MoMo: {} -> {}", momoOrderId, orderId);
-                    
-                    com.example.backendplantshop.dto.request.UpdateOrderStatusDtoRequest statusRequest = 
-                            com.example.backendplantshop.dto.request.UpdateOrderStatusDtoRequest.builder()
-                                    .status(OrderSatus.CONFIRMED) // Đã sửa typo từ CONFIREMED
-                                    .build();
-                    orderService.updateOrderStatus(orderId, statusRequest);
-                    log.info("Đã cập nhật trạng thái đơn hàng {} thành công sau khi thanh toán", orderId);
                 } catch (Exception e) {
                     log.error("Lỗi khi cập nhật trạng thái đơn hàng từ callback: {}", e.getMessage(), e);
                 }
             } else {
                 log.warn("Thanh toán thất bại: orderId={}, message={}", 
                         callbackRequest.getOrderId(), callbackRequest.getMessage());
+                if (orderId != null) {
+                    paymentService.updatePaymentsByOrderId(orderId, PaymentStatus.FAILED);
+                }
             }
             
             // Trả về response cho MoMo
@@ -223,14 +216,38 @@ public class PaymentController {
         
         log.info("Return từ MoMo: orderId={}, resultCode={}, message={}", orderId, resultCode, message);
         
-        // Redirect về frontend với thông tin kết quả
-        String redirectUrl = String.format("http://localhost:3000/payment-result?orderId=%s&resultCode=%s&message=%s",
-                orderId != null ? orderId : "",
-                resultCode != null ? resultCode : "",
-                message != null ? message : "");
+        // URL encode các tham số để tránh lỗi Unicode trong HTTP header
+        String encodedOrderId = orderId != null ? URLEncoder.encode(orderId, StandardCharsets.UTF_8) : "";
+        String encodedResultCode = resultCode != null ? String.valueOf(resultCode) : "";
+        String encodedMessage = message != null ? URLEncoder.encode(message, StandardCharsets.UTF_8) : "";
+        
+        // Redirect về trang chủ frontend với thông tin kết quả thanh toán trong query params
+        // Frontend có thể đọc query params và hiển thị thông báo tương ứng
+        String redirectUrl = String.format("http://localhost:3000/?paymentResult=true&orderId=%s&resultCode=%s&message=%s",
+                encodedOrderId,
+                encodedResultCode,
+                encodedMessage);
         
         return ResponseEntity.status(302)
                 .header("Location", redirectUrl)
                 .build();
+    }
+    
+    private Integer extractOrderId(String momoOrderId) {
+        if (momoOrderId == null || momoOrderId.isBlank()) {
+            return null;
+        }
+        try {
+            if (momoOrderId.startsWith("ORDER_")) {
+                String[] parts = momoOrderId.split("_");
+                if (parts.length >= 2) {
+                    return Integer.parseInt(parts[1]);
+                }
+            }
+            return Integer.parseInt(momoOrderId);
+        } catch (NumberFormatException ex) {
+            log.error("Không thể parse orderId từ {}: {}", momoOrderId, ex.getMessage());
+            return null;
+        }
     }
 }

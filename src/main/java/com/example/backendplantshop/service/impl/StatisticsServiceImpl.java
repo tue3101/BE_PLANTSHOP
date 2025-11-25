@@ -1,5 +1,6 @@
 package com.example.backendplantshop.service.impl;
 
+import com.example.backendplantshop.dto.response.OrderStatisticsDtoResponse;
 import com.example.backendplantshop.dto.response.StatisticsResponse;
 import com.example.backendplantshop.dto.response.TopProductResponse;
 import com.example.backendplantshop.enums.ErrorCode;
@@ -28,7 +29,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     public StatisticsResponse getStatisticsByDate(int year, int month, int day) {
         validateDate(year, month, day);
         
-        Map<String, Object> result = orderMapper.getStatisticsByDate(year, month, day);
+        OrderStatisticsDtoResponse result = orderMapper.getStatisticsByDate(year, month, day);
         return convertToStatisticsResponse(result);
     }
     
@@ -36,7 +37,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     public StatisticsResponse getStatisticsByMonth(int year, int month) {
         validateMonth(year, month);
         
-        Map<String, Object> result = orderMapper.getStatisticsByMonth(year, month);
+        OrderStatisticsDtoResponse result = orderMapper.getStatisticsByMonth(year, month);
         return convertToStatisticsResponse(result);
     }
     
@@ -44,7 +45,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     public StatisticsResponse getStatisticsByYear(int year) {
         validateYear(year);
         
-        Map<String, Object> result = orderMapper.getStatisticsByYear(year);
+        OrderStatisticsDtoResponse result = orderMapper.getStatisticsByYear(year);
         return convertToStatisticsResponse(result);
     }
     
@@ -75,8 +76,8 @@ public class StatisticsServiceImpl implements StatisticsService {
         return convertToTopProductResponseList(results);
     }
     
-    private StatisticsResponse convertToStatisticsResponse(Map<String, Object> result) {
-        if (result == null || result.isEmpty()) {
+    private StatisticsResponse convertToStatisticsResponse(OrderStatisticsDtoResponse result) {
+        if (result == null) {
             return StatisticsResponse.builder()
                     .totalRevenue(BigDecimal.ZERO)
                     .totalOrders(0)
@@ -86,18 +87,12 @@ public class StatisticsServiceImpl implements StatisticsService {
                     .build();
         }
         
-        BigDecimal totalRevenue = getBigDecimalValue(result, "totalRevenue");
-        Integer totalOrders = getIntegerValue(result, "totalOrders");
-        Integer completedOrders = getIntegerValue(result, "completedOrders");
-        Integer cancelledOrders = getIntegerValue(result, "cancelledOrders");
-        BigDecimal averageOrderValue = getBigDecimalValue(result, "averageOrderValue");
-        
         return StatisticsResponse.builder()
-                .totalRevenue(totalRevenue)
-                .totalOrders(totalOrders)
-                .completedOrders(completedOrders)
-                .cancelledOrders(cancelledOrders)
-                .averageOrderValue(averageOrderValue)
+                .totalRevenue(result.getTotalRevenue() != null ? result.getTotalRevenue() : BigDecimal.ZERO)
+                .totalOrders(result.getTotalOrders() != null ? result.getTotalOrders() : 0)
+                .completedOrders(result.getCompletedOrders() != null ? result.getCompletedOrders() : 0)
+                .cancelledOrders(result.getCancelledOrders() != null ? result.getCancelledOrders() : 0)
+                .averageOrderValue(result.getAverageOrderValue() != null ? result.getAverageOrderValue() : BigDecimal.ZERO)
                 .build();
     }
     

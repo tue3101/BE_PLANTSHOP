@@ -29,6 +29,9 @@ public class OrderDtoResponse {
     private int user_id;
     private UserDtoResponse user; 
     private Integer discount_id;
+    private String shipping_name;
+    private String shipping_address;
+    private String shipping_phone;
     private List<OrderDetailDtoResponse> order_details;
 }
 

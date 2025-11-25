@@ -16,8 +16,20 @@
     </resultMap>
 
     <insert id="insert" parameterType="ProductReview" useGeneratedKeys="true" keyProperty="review_id" keyColumn="review_id">
-        INSERT INTO product_review (rating, comment, product_id, user_id, is_deleted, created_at, updated_at)
-        VALUES (#{rating}, #{comment}, #{product_id}, #{user_id}, #{is_deleted}, #{created_at}, #{updated_at})
+        INSERT INTO product_review (rating,
+                                    comment,
+                                    product_id,
+                                    user_id,
+                                    is_deleted,
+                                    created_at,
+                                    updated_at)
+        VALUES (#{rating},
+                #{comment},
+                #{product_id},
+                #{user_id},
+                #{is_deleted},
+                #{created_at},
+                #{updated_at})
     </insert>
 
     <select id="findById" resultMap="ProductReviewResultMap" parameterType="integer">
@@ -27,6 +39,7 @@
           AND is_deleted = 0
     </select>
 
+<!--    tìm review theo sp-->
     <select id="findByProductId" resultMap="ProductReviewResultMap" parameterType="integer">
         SELECT *
         FROM product_review
@@ -35,6 +48,7 @@
         ORDER BY created_at DESC
     </select>
 
+<!--    tìm review theo user-->
     <select id="findByUserId" resultMap="ProductReviewResultMap" parameterType="integer">
         SELECT *
         FROM product_review
@@ -43,6 +57,7 @@
         ORDER BY created_at DESC
     </select>
 
+<!--     kiểm tra sp đã từng được user review chưa-->
     <select id="findByProductIdAndUserId" resultMap="ProductReviewResultMap">
         SELECT *
         FROM product_review
@@ -52,27 +67,7 @@
         ORDER BY created_at DESC
     </select>
 
-    <select id="getAll" resultMap="ProductReviewResultMap">
-        SELECT *
-        FROM product_review
-        WHERE is_deleted = 0
-        ORDER BY created_at DESC
-    </select>
-
-    <select id="getAllDeleted" resultMap="ProductReviewResultMap">
-        SELECT *
-        FROM product_review
-        WHERE is_deleted = 1
-        ORDER BY updated_at DESC
-    </select>
-
-    <select id="findByIdDeleted" resultMap="ProductReviewResultMap" parameterType="integer">
-        SELECT *
-        FROM product_review
-        WHERE review_id = #{reviewID}
-          AND is_deleted = 1
-    </select>
-
+<!--    sửa review-->
     <update id="update" parameterType="com.example.backendplantshop.entity.ProductReview">
         UPDATE product_review
         SET rating = #{rating},
@@ -82,6 +77,26 @@
           AND is_deleted = 0
     </update>
 
+<!--    lấy tất cả review cho admin qly-->
+    <select id="getAll" resultMap="ProductReviewResultMap">
+        SELECT *
+        FROM product_review
+        WHERE is_deleted = 0
+        ORDER BY created_at DESC
+    </select>
+
+
+    <select id="getAllDeleted" resultMap="ProductReviewResultMap">
+        SELECT *
+        FROM product_review
+        WHERE is_deleted = 1
+        ORDER BY updated_at DESC
+    </select>
+
+
+
+
+<!--ẩn review -->
     <update id="delete" parameterType="integer">
         UPDATE product_review
         SET is_deleted = 1,
@@ -89,6 +104,13 @@
         WHERE review_id = #{reviewID}
     </update>
 
+<!--    tìm kiếm review bị xóa để khôi phục-->
+    <select id="findByIdDeleted" resultMap="ProductReviewResultMap" parameterType="integer">
+        SELECT *
+        FROM product_review
+        WHERE review_id = #{reviewID}
+          AND is_deleted = 1
+    </select>
     <update id="restoreReview" parameterType="integer">
         UPDATE product_review
         SET is_deleted = 0,

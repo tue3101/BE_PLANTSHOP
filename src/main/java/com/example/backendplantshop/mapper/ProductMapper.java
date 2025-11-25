@@ -10,7 +10,7 @@ import java.util.List;
 public interface ProductMapper {
     Products findById(@Param("productID") int id);
      List<Products> getAll();
-     Products findByProductNameAndSize(@Param("productName") String productName, @Param("size") String size, @Param("categoryId") int categoryId);
+     Products findByProductName_Size_Category(@Param("productName") String productName, @Param("size") String size, @Param("categoryId") int categoryId);
      int insert(Products products);
     int update(Products products);
      int delete(@Param("productID") int id);

@@ -50,7 +50,8 @@
         WHERE google_id = #{googleId}
         AND is_deleted = 0
     </select>
-    
+
+<!--    tìm mail hoặc google id trong trường hợp user bị vô  hiệu hóa tk-->
     <select id="findByEmailIgnoreDeleted" resultMap="UserResultMap">
         SELECT * FROM users
         WHERE email = #{email}
@@ -83,6 +84,7 @@
         WHERE is_deleted = 1
     </select>
 
+<!--    COALESCE => nếu role có gtri thì dùng ko thì trả về USER-->
     <insert id="insert" parameterType="Users" useGeneratedKeys="true" keyProperty="user_id" keyColumn="user_id">
         INSERT INTO users(
             email

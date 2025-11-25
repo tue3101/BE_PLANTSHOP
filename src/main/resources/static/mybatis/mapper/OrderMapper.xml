@@ -16,12 +16,41 @@
         <result column="updated_at" property="updated_at"/>
         <result column="user_id" property="user_id"/>
         <result column="discount_id" property="discount_id"/>
+        <result column="shipping_name" property="shipping_name"/>
+        <result column="shipping_address" property="shipping_address"/>
+        <result column="shipping_phone" property="shipping_phone"/>
         <result column="is_deleted" property="is_deleted"/>
     </resultMap>
 
     <insert id="insert" parameterType="Orders" useGeneratedKeys="true" keyProperty="order_id">
-        INSERT INTO orders (total, discount_amount, final_total, order_date, status, shipping_status, created_at, updated_at, user_id, discount_id, is_deleted)
-        VALUES (#{total}, #{discount_amount}, #{final_total}, #{order_date}, #{status}, #{shipping_status}, #{created_at}, #{updated_at}, #{user_id}, #{discount_id}, #{is_deleted})
+        INSERT INTO orders (total,
+                            discount_amount,
+                            final_total,
+                            order_date,
+                            status,
+                            shipping_status,
+                            created_at,
+                            updated_at,
+                            user_id,
+                            discount_id,
+                            shipping_name,
+                            shipping_address,
+                            shipping_phone,
+                            is_deleted)
+        VALUES (#{total},
+                #{discount_amount},
+                #{final_total},
+                #{order_date},
+                #{status},
+                #{shipping_status},
+                #{created_at},
+                #{updated_at},
+                #{user_id},
+                #{discount_id},
+                #{shipping_name},
+                #{shipping_address},
+                #{shipping_phone},
+                #{is_deleted})
     </insert>
 
     <select id="findById" parameterType="int" resultMap="OrderResultMap">
@@ -31,6 +60,8 @@
         AND is_deleted = 0
     </select>
 
+
+<!--    tìm đơn của user-->
     <select id="findByUserId" parameterType="int" resultMap="OrderResultMap">
         SELECT *
         FROM orders
@@ -39,6 +70,7 @@
         ORDER BY order_date DESC
     </select>
 
+<!--    lấy  tất cả cho admin qly-->
     <select id="getAll" resultMap="OrderResultMap">
         SELECT *
         FROM orders
@@ -56,9 +88,21 @@
             shipping_status = #{shipping_status},
             updated_at = #{updated_at},
             user_id = #{user_id},
-            discount_id = #{discount_id}
+            discount_id = #{discount_id},
+            shipping_name = #{shipping_name},
+            shipping_address = #{shipping_address},
+            shipping_phone = #{shipping_phone}
         WHERE order_id = #{order_id}
     </update>
+
+<!--    <update id="updateShippingInfo">-->
+<!--        UPDATE orders-->
+<!--        SET shipping_name = #{shippingName},-->
+<!--            shipping_address = #{shippingAddress},-->
+<!--            shipping_phone = #{shippingPhone},-->
+<!--            updated_at = NOW()-->
+<!--        WHERE order_id = #{orderId}-->
+<!--    </update>-->
 
     <update id="delete" parameterType="int">
         UPDATE orders
@@ -67,14 +111,15 @@
     </update>
 
     <!-- Statistics by date -->
-    <select id="getStatisticsByDate" resultType="map">
+    <select id="getStatisticsByDate" resultType="com.example.backendplantshop.dto.response.OrderStatisticsDtoResponse">
         SELECT 
             COALESCE(SUM(o.final_total), 0) as totalRevenue,
             COUNT(*) as totalOrders,
             COUNT(*) as completedOrders,
             0 as cancelledOrders,
-            CASE 
-                WHEN COUNT(*) > 0 THEN COALESCE(SUM(o.final_total), 0) / COUNT(*)
+            CASE
+                WHEN COUNT(*) > 0
+                    THEN COALESCE(SUM(o.final_total), 0) / COUNT(*)
                 ELSE 0 
             END as averageOrderValue
         FROM orders o
@@ -94,13 +139,13 @@
     </select>
 
     <!-- Statistics by month -->
-    <select id="getStatisticsByMonth" resultType="map">
+    <select id="getStatisticsByMonth" resultType="com.example.backendplantshop.dto.response.OrderStatisticsDtoResponse">
         SELECT 
             COALESCE(SUM(o.final_total), 0) as totalRevenue,
             COUNT(*) as totalOrders,
             COUNT(*) as completedOrders,
             0 as cancelledOrders,
-            CASE 
+            CASE
                 WHEN COUNT(*) > 0 THEN COALESCE(SUM(o.final_total), 0) / COUNT(*)
                 ELSE 0 
             END as averageOrderValue
@@ -120,13 +165,13 @@
     </select>
 
     <!-- Statistics by year -->
-    <select id="getStatisticsByYear" resultType="map">
+    <select id="getStatisticsByYear" resultType="com.example.backendplantshop.dto.response.OrderStatisticsDtoResponse">
         SELECT 
             COALESCE(SUM(o.final_total), 0) as totalRevenue,
             COUNT(*) as totalOrders,
             COUNT(*) as completedOrders,
             0 as cancelledOrders,
-            CASE 
+            CASE
                 WHEN COUNT(*) > 0 THEN COALESCE(SUM(o.final_total), 0) / COUNT(*)
                 ELSE 0 
             END as averageOrderValue

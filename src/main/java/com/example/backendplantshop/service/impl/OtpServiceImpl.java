@@ -51,7 +51,7 @@ public class OtpServiceImpl implements OtpService {
                 .is_deleted(false)
                 .build();
         
-        emailOtpMapper.insert(emailOtp);
+        emailOtpMapper.insertOtp(emailOtp);
         
         // Gửi email OTP
         emailService.sendOtpEmail(email, otpCode);
@@ -98,10 +98,13 @@ public class OtpServiceImpl implements OtpService {
         log.info("Đã cập nhật user_id = {} cho OTP của email: {}", userId, email);
     }
 
+
+    //StringBuilder cho phép thêm, xóa, chèn, đảo ngược mà không tạo ra object mới mỗi lần
     private String generateOtp() {
         StringBuilder otp = new StringBuilder(OTP_LENGTH);
         for (int i = 0; i < OTP_LENGTH; i++) {
-            otp.append(random.nextInt(10));
+            //append -> thêm số vừa sinh vào cuối chũi
+            otp.append(random.nextInt(10)); //random 6 số ngto từ 0->9
         }
         return otp.toString();
     }

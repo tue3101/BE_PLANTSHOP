@@ -15,8 +15,17 @@
     </resultMap>
 
     <insert id="insert" parameterType="Payment" useGeneratedKeys="true" keyProperty="payment_id">
-        INSERT INTO payment (method_id, amount, payment_date, status, order_id, is_deleted)
-        VALUES (#{method_id}, #{amount}, #{payment_date}, #{status}, #{order_id}, #{is_deleted})
+        INSERT INTO payment (method_id,
+                             amount,
+                             payment_date,
+                             status, order_id,
+                             is_deleted)
+        VALUES (#{method_id},
+                #{amount},
+                #{payment_date},
+                #{status},
+                #{order_id},
+                #{is_deleted})
     </insert>
 
     <select id="findById" parameterType="int" resultMap="PaymentResultMap">
@@ -51,10 +60,10 @@
         WHERE payment_id = #{payment_id}
     </update>
 
-    <update id="delete" parameterType="int">
-        UPDATE payment
-        SET is_deleted = 1
-        WHERE payment_id = #{paymentID}
-    </update>
+<!--    <update id="delete" parameterType="int">-->
+<!--        UPDATE payment-->
+<!--        SET is_deleted = 1-->
+<!--        WHERE payment_id = #{paymentID}-->
+<!--    </update>-->
 </mapper>
 

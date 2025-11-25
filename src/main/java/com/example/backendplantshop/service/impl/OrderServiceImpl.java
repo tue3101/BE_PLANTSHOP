@@ -7,13 +7,11 @@ import com.example.backendplantshop.dto.request.OrderDtoRequest;
 import com.example.backendplantshop.dto.request.OrderDetailDtoRequest;
 import com.example.backendplantshop.dto.request.PaymentDtoRequest;
 import com.example.backendplantshop.dto.request.UpdateOrderStatusDtoRequest;
-import com.example.backendplantshop.dto.request.UpdateShippingStatusDtoRequest;
 import com.example.backendplantshop.dto.response.OrderDetailDtoResponse;
 import com.example.backendplantshop.dto.response.OrderDtoResponse;
 import com.example.backendplantshop.dto.response.user.UserDtoResponse;
 import com.example.backendplantshop.entity.*;
 import com.example.backendplantshop.enums.PaymentStatus;
-import com.example.backendplantshop.enums.DiscountType;
 import com.example.backendplantshop.enums.ErrorCode;
 import com.example.backendplantshop.enums.OrderSatus;
 import com.example.backendplantshop.enums.ShippingStatus;
@@ -41,7 +39,6 @@ public class OrderServiceImpl implements OrderService {
     private final ProductMapper productMapper;
     private final DiscountMapper discountMapper;
     private final CartDetailMapper cartDetailMapper;
-    private final CartMapper cartMapper;
     private final AuthServiceImpl authService;
     private final PaymentMapper paymentMapper;
     private final PaymentMethodMapper paymentMethodMapper;
@@ -49,7 +46,7 @@ public class OrderServiceImpl implements OrderService {
     private final UserMapper userMapper;
 
     @Override
-    @Transactional
+    @Transactional //sử dụng transactional để rollback nếu xảy ra lỗi va commit nếu thành công
     public OrderDtoResponse createOrder(OrderDtoRequest orderRequest) {
         int currentUserId = authService.getCurrentUserId();
         String role = authService.getCurrentRole();
@@ -73,7 +70,7 @@ public class OrderServiceImpl implements OrderService {
             throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
         }
 
-        // 3. Xử lý discount (chỉ để lấy discount_id)
+        // 3. Xử lý discount (chỉ lấy discount_id)
         Integer discountId = null;
         if (orderRequest.getDiscount_id() != null) {
             Discounts discount = discountMapper.findById(orderRequest.getDiscount_id());
@@ -148,7 +145,7 @@ public class OrderServiceImpl implements OrderService {
                 PaymentDtoRequest paymentRequest = orderRequest.getPayment();
                 
                 // Validate payment method
-                com.example.backendplantshop.entity.PaymentMethod paymentMethod = 
+               PaymentMethod paymentMethod =
                     paymentMethodMapper.findById(paymentRequest.getMethod_id());
                 if (paymentMethod == null) {
                     throw new AppException(ErrorCode.LIST_NOT_FOUND);
@@ -311,12 +308,7 @@ public class OrderServiceImpl implements OrderService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Helper method: Validate logic giữa order status, shipping status và payment status
-     * @param orderStatus Trạng thái đơn hàng
-     * @param shippingStatus Trạng thái giao hàng
-     * @param paymentStatus Trạng thái thanh toán (lấy từ payment mới nhất hoặc SUCCESS nếu có)
-     */
+
     private void validateOrderStatusLogic(OrderSatus orderStatus, ShippingStatus shippingStatus, PaymentStatus paymentStatus) {
         // 1. PENDING_CONFIRMATION + SHIPPING/DELIVERED → Không hợp lý
         if (orderStatus == OrderSatus.PENDING_CONFIRMATION) {
@@ -330,11 +322,10 @@ public class OrderServiceImpl implements OrderService {
             throw new AppException(ErrorCode.INVALID_ORDER_STATUS_COMBINATION);
         }
 
-        // 3. PENDING_CONFIRMATION + payment SUCCESS → Không hợp lý (đơn chưa xác nhận thì không thể thanh toán thành công)
-        // Lưu ý: Nếu payment thành công, order status nên được tự động cập nhật thành CONFIRMED
-        if (orderStatus == OrderSatus.PENDING_CONFIRMATION && paymentStatus == PaymentStatus.SUCCESS) {
-            throw new AppException(ErrorCode.INVALID_ORDER_STATUS_COMBINATION);
-        }
+        // 3. PENDING_CONFIRMATION + payment SUCCESS → Cho phép
+        // Lưu ý: Có thể xảy ra khi user thanh toán thành công nhưng admin chưa xác nhận đơn
+        // Trong trường hợp này, user vẫn có thể hủy đơn và được hoàn tiền
+        // Không cần validate rule này nữa
 
         // 4. CONFIRMED + DELIVERED + FAILED → Không hợp lý (giao hàng thành công mà thanh toán thất bại)
         if (orderStatus == OrderSatus.CONFIRMED && shippingStatus == ShippingStatus.DELIVERED && paymentStatus == PaymentStatus.FAILED) {
@@ -350,9 +341,15 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
-        // 6. CANCELLED + payment SUCCESS → Không hợp lý (đơn đã hủy thì không thể thanh toán thành công)
+        // 6. CANCELLED + payment SUCCESS → Cho phép nếu chưa giao hàng (cần hoàn tiền)
+        // Cho phép hủy đơn khi đã thanh toán thành công nhưng chưa giao hàng
+        // Áp dụng cho cả PENDING_CONFIRMATION và CONFIRMED (nếu chưa giao hàng)
         if (orderStatus == OrderSatus.CANCELLED && paymentStatus == PaymentStatus.SUCCESS) {
-            throw new AppException(ErrorCode.INVALID_ORDER_STATUS_COMBINATION);
+            if (shippingStatus != ShippingStatus.UNDELIVERED) {
+                // Đã giao hàng hoặc đang giao hàng thì không cho phép hủy
+                throw new AppException(ErrorCode.INVALID_ORDER_STATUS_COMBINATION);
+            }
+            // Cho phép hủy nếu chưa giao hàng (sẽ hoàn tiền trong logic hủy đơn)
         }
 
         // 7. CONFIRMED + CANCELLED (shipping) + SUCCESS → Không hợp lý (trừ khi có hoàn tiền)
@@ -363,9 +360,7 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
-    /**
-     * Helper method: Lấy payment status từ order (lấy status mới nhất hoặc SUCCESS nếu có)
-     */
+
     private PaymentStatus getPaymentStatusFromOrder(int orderId) {
         List<Payment> payments = paymentMapper.findByOrderId(orderId);
         if (payments == null || payments.isEmpty()) {
@@ -425,9 +420,18 @@ public class OrderServiceImpl implements OrderService {
         order.setUpdated_at(LocalDateTime.now());
         orderMapper.update(order);
 
-        // Nếu hủy đơn (CANCELLED), cập nhật payment status thành FAILED và shipping status thành UNDELIVERED
+        // Nếu hủy đơn (CANCELLED), xử lý hoàn tiền nếu đã thanh toán thành công
         if (request.getStatus() == OrderSatus.CANCELLED) {
             try {
+                // Nếu đã thanh toán thành công, cần hoàn tiền trước khi hủy
+                if (currentPaymentStatus == PaymentStatus.SUCCESS) {
+                    log.warn("Đơn hàng {} đã thanh toán thành công, cần hoàn tiền MoMo trước khi hủy", orderId);
+                    log.warn("LƯU Ý: Cần gọi MoMo Refund API với transId từ callback để hoàn tiền cho khách hàng");
+                    log.warn("Sau khi hoàn tiền thành công, payment status sẽ được cập nhật thành FAILED");
+                    // TODO: Implement MoMo refund API call here nếu cần tự động hoàn tiền
+                }
+                
+                // Cập nhật payment status thành FAILED khi hủy đơn
                 paymentService.updatePaymentsByOrderId(orderId, PaymentStatus.FAILED);
                 log.info("Đã cập nhật tất cả payments của order {} thành FAILED khi hủy đơn", orderId);
                 
@@ -464,9 +468,69 @@ public class OrderServiceImpl implements OrderService {
         return response;
     }
 
+//    @Override
+//    @Transactional
+//    public OrderDtoResponse updateShippingStatus(int orderId, UpdateShippingStatusDtoRequest request) {
+//        int currentUserId = authService.getCurrentUserId();
+//        String role = authService.getCurrentRole();
+//
+//        Orders order = orderMapper.findById(orderId);
+//        if (order == null) {
+//            throw new AppException(ErrorCode.LIST_NOT_FOUND);
+//        }
+//
+//        // Kiểm tra quyền: Admin có thể cập nhật bất kỳ đơn hàng nào, User chỉ có thể cập nhật đơn hàng của mình
+//        if (authService.isUser(role) && order.getUser_id() != currentUserId) {
+//            throw new AppException(ErrorCode.ACCESS_DENIED);
+//        }
+//
+//        // Validate shipping_status
+//        if (request.getShipping_status() == null) {
+//            throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
+//        }
+//
+//        // Logic validation: Nếu đơn hàng chưa ở trạng thái CONFIRMED thì shipping_status chỉ được là UNDELIVERED
+//        if (order.getStatus() != OrderSatus.CONFIRMED) {
+//            if (request.getShipping_status() != ShippingStatus.UNDELIVERED) {
+//                throw new AppException(ErrorCode.INVALID_ORDER_STATUS_COMBINATION);
+//            }
+//        }
+//
+//        // Validate logic với payment status trước khi update
+//        PaymentStatus currentPaymentStatus = getPaymentStatusFromOrder(orderId);
+//        validateOrderStatusLogic(order.getStatus(), request.getShipping_status(), currentPaymentStatus);
+//
+//        // Cập nhật shipping_status
+//        order.setShipping_status(request.getShipping_status());
+//        order.setUpdated_at(LocalDateTime.now());
+//        orderMapper.update(order);
+//
+//        log.info("Đã cập nhật shipping_status của order {} thành {}", orderId, request.getShipping_status());
+//
+//        // Lấy order details để trả về
+//        List<OrderDetails> orderDetails = orderDetailMapper.findByOrderId(orderId);
+//        List<OrderDetailDtoResponse> orderDetailDtos = new ArrayList<>();
+//
+//        for (OrderDetails orderDetail : orderDetails) {
+//            Products product = productMapper.findById(orderDetail.getProduct_id());
+//            if (product != null) {
+//                OrderDetailDtoResponse orderDetailDto = OrderConvert.convertOrderDetailToOrderDetailDtoResponseWithProduct(
+//                        orderDetail, product);
+//                orderDetailDtos.add(orderDetailDto);
+//            } else {
+//                OrderDetailDtoResponse orderDetailDto = OrderConvert.convertOrderDetailToOrderDetailDtoResponse(orderDetail);
+//                orderDetailDtos.add(orderDetailDto);
+//            }
+//        }
+//
+//        OrderDtoResponse response = OrderConvert.convertOrderToOrderDtoResponse(order, orderDetails);
+//        response.setOrder_details(orderDetailDtos);
+//        return response;
+//    }
+
     @Override
     @Transactional
-    public OrderDtoResponse updateShippingStatus(int orderId, UpdateShippingStatusDtoRequest request) {
+    public OrderDtoResponse updateShippingInfo(int orderId, UpdateShippingInfoDtoRequest request) {
         int currentUserId = authService.getCurrentUserId();
         String role = authService.getCurrentRole();
         
@@ -480,28 +544,33 @@ public class OrderServiceImpl implements OrderService {
             throw new AppException(ErrorCode.ACCESS_DENIED);
         }
 
-        // Validate shipping_status
-        if (request.getShipping_status() == null) {
+        // Validate các trường shipping info
+        if (request.getShipping_name() == null || request.getShipping_name().trim().isEmpty()) {
+            throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
+        }
+        if (request.getShipping_address() == null || request.getShipping_address().trim().isEmpty()) {
+            throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
+        }
+        if (request.getShipping_phone() == null || request.getShipping_phone().trim().isEmpty()) {
             throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
         }
 
-        // Logic validation: Nếu đơn hàng chưa ở trạng thái CONFIRMED thì shipping_status chỉ được là UNDELIVERED
-        if (order.getStatus() != OrderSatus.CONFIRMED) {
-            if (request.getShipping_status() != ShippingStatus.UNDELIVERED) {
-                throw new AppException(ErrorCode.INVALID_ORDER_STATUS_COMBINATION);
-            }
-        }
+        // Chỉ cập nhật 3 trường shipping info, giữ nguyên các trường khác
+        // Sử dụng method updateShippingInfo riêng để tối ưu (chỉ update 3 trường này)
+        orderMapper.updateShippingInfo(
+                orderId,
+                request.getShipping_name(),
+                request.getShipping_address(),
+                request.getShipping_phone()
+        );
+        
+        // Cập nhật lại object order để trả về response đúng
+        order.setShipping_name(request.getShipping_name());
+        order.setShipping_address(request.getShipping_address());
+        order.setShipping_phone(request.getShipping_phone());
 
-        // Validate logic với payment status trước khi update
-        PaymentStatus currentPaymentStatus = getPaymentStatusFromOrder(orderId);
-        validateOrderStatusLogic(order.getStatus(), request.getShipping_status(), currentPaymentStatus);
-
-        // Cập nhật shipping_status
-        order.setShipping_status(request.getShipping_status());
-        order.setUpdated_at(LocalDateTime.now());
-        orderMapper.update(order);
-
-        log.info("Đã cập nhật shipping_status của order {} thành {}", orderId, request.getShipping_status());
+        log.info("Đã cập nhật thông tin giao hàng của order {}: name={}, address={}, phone={}", 
+                orderId, request.getShipping_name(), request.getShipping_address(), request.getShipping_phone());
 
         // Lấy order details để trả về
         List<OrderDetails> orderDetails = orderDetailMapper.findByOrderId(orderId);

@@ -44,6 +44,9 @@ public class OrderConvert {
                 .updated_at(now)
                 .user_id(userId)
                 .discount_id(discountId)
+                .shipping_name(request.getShipping_name())
+                .shipping_address(request.getShipping_address())
+                .shipping_phone(request.getShipping_phone())
                 .is_deleted(false)
                 .build();
     }
@@ -65,6 +68,9 @@ public class OrderConvert {
                 .updated_at(order.getUpdated_at())
                 .user_id(order.getUser_id())
                 .discount_id(order.getDiscount_id())
+                .shipping_name(order.getShipping_name())
+                .shipping_address(order.getShipping_address())
+                .shipping_phone(order.getShipping_phone())
                 .order_details(orderDetailDtos)
                 .build();
     }

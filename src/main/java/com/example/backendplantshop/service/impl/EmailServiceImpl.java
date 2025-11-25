@@ -23,13 +23,13 @@ public class EmailServiceImpl implements EmailService {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
             message.setTo(toEmail);
-            message.setSubject("Mã OTP xác thực email - Plant Shop");
+            message.setSubject("Mã OTP xác thực email của Shop CỎ BA LÁ");
             message.setText("Xin chào,\n\n" +
                     "Mã OTP của bạn là: " + otpCode + "\n\n" +
                     "Mã OTP này có hiệu lực trong 5 phút.\n" +
                     "Vui lòng không chia sẻ mã này với bất kỳ ai.\n\n" +
                     "Trân trọng,\n" +
-                    "Plant Shop Team");
+                    "Shop CỎ BA LÁ");
             
             mailSender.send(message);
             log.info("Đã gửi email OTP đến: {}", toEmail);

@@ -24,6 +24,9 @@ public class Orders {
     private ShippingStatus shipping_status;
     private LocalDateTime created_at;
     private LocalDateTime updated_at;
+    private String shipping_name;
+    private  String shipping_address;
+    private String shipping_phone;
 
     private int user_id;
     private Integer discount_id; // Có thể null nếu không dùng discount

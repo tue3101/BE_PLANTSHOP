@@ -10,9 +10,8 @@ public class MoMoUtil {
     
     private static final String HMAC_SHA256 = "HmacSHA256";
     
-    /**
-     * Tạo chữ ký số (signature) cho MoMo Payment
-     */
+
+//     Tạo chữ ký số (signature) cho MoMo Payment
     public static String createSignature(String accessKey, String secretKey, String rawHash) {
         // Validate credentials
         if (secretKey == null || secretKey.trim().isEmpty()) {
@@ -21,11 +20,12 @@ public class MoMoUtil {
         if (accessKey == null || accessKey.trim().isEmpty()) {
             throw new IllegalArgumentException("MOMO_ACCESS_KEY không được để trống. Vui lòng kiểm tra file .env");
         }
-        
         try {
             Mac mac = Mac.getInstance(HMAC_SHA256);
+            //lấy chuỗi secretKey chuyển thành mảng byte bằng UTF-8
             SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), HMAC_SHA256);
-            mac.init(secretKeySpec);
+            mac.init(secretKeySpec); //khởi tạo với secretkey
+            //sinh ra mã hash từ rawhash bằng HMAC
             byte[] hashBytes = mac.doFinal(rawHash.getBytes(StandardCharsets.UTF_8));
             return bytesToHex(hashBytes);
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {

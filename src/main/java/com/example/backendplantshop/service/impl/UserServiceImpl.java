@@ -103,7 +103,7 @@ public LoginDtoResponse update(int id, UserDtoRequest userDtoRequest) {
         throw new AppException(ErrorCode.USERNAME_ALREADY_EXISTS);
     }
 
-    // Kiểm tra role thay đổi và bởi ai
+    // Kiểm tra role có toon tại và so sánh có bằng với role  trong db
     boolean roleChanged = userDtoRequest.getRole() != null && 
                          !userDtoRequest.getRole().equals(existingUser.getRole());
     if (roleChanged) {
@@ -143,7 +143,9 @@ public LoginDtoResponse update(int id, UserDtoRequest userDtoRequest) {
         userMapper.delete(id);
         log.info("Đã xóa user: user_id={}", id);
     }
-    
+
+
+    //kiểm tra user có đơn hàng chưa xửa lý hay ko
     private boolean checkUserHasPendingOrders(int userId) {
         // Lấy tất cả đơn hàng của user
         List<Orders> userOrders = orderMapper.findByUserId(userId);
@@ -156,6 +158,7 @@ public LoginDtoResponse update(int id, UserDtoRequest userDtoRequest) {
         // Kiểm tra xem có đơn hàng nào chưa DELIVERED không
         // Các trạng thái chưa giao thành công: PENDING_CONFIRMATION, CONFIRMED, SHIPPING
         // CANCELLED không tính vì đã hủy
+        //anyMatch dùng để kiểm tra có ít nhất một ptu trong stream thỏa đk ko
         boolean hasPendingOrders = userOrders.stream()
                 .anyMatch(order -> order.getShipping_status()!= ShippingStatus.DELIVERED
                         && order.getStatus() != OrderSatus.CANCELLED);

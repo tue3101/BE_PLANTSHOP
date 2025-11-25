@@ -62,8 +62,8 @@ momo:
   # Return URL: Backend nhận redirect từ MoMo, sau đó redirect về frontend
   return-url: ${RETURN_URL:http://localhost:1234/api/payments/momo/return}
   # Notify URL: MoMo gọi callback về backend
-  notify-url: ${MOMO_NOTIFY_URL:http://localhost:1234/api/payments/momo/callback}
-  # Request type mặc định là captureWallet
+  notify-url: ${MOMO_NOTIFY_URL:https://localhost:1234/api/payments/momo/callback}
+  # Request type mặc định là captureMoMoWallet
   request-type: ${REQUESTS_TYPE:captureWallet}
   # Store information
   store-name: ${MOMO_STORE_NAME:Plant Shop}

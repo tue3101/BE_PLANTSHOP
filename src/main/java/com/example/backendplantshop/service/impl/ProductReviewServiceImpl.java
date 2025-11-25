@@ -50,7 +50,6 @@ public class ProductReviewServiceImpl implements ProductReviewService {
         
         // Kiểm tra quyền: chỉ USER mới được tạo review
         if (!authService.isUser(role) && !authService.isAdmin(role)) {
-            log.warn("User không có quyền tạo review. Role: {}", role);
             throw new AppException(ErrorCode.ACCESS_DENIED);
         }
         
@@ -166,11 +165,11 @@ public class ProductReviewServiceImpl implements ProductReviewService {
             throw new AppException(ErrorCode.LIST_NOT_FOUND);
         }
         
-        // Kiểm tra quyền: chỉ user tạo review hoặc admin mới được sửa
+        // Kiểm tra quyền: chỉ user tạo review
         int currentUserId = authService.getCurrentUserId();
         String role = authService.getCurrentRole();
         
-        if (!authService.isAdmin(role) && existingReview.getUser_id() != currentUserId) {
+        if (authService.isAdmin(role) && existingReview.getUser_id() != currentUserId) {
             log.warn("User không có quyền sửa review này. Review user: {}, Current user: {}", 
                     existingReview.getUser_id(), currentUserId);
             throw new AppException(ErrorCode.ACCESS_DENIED);
@@ -294,7 +293,9 @@ public class ProductReviewServiceImpl implements ProductReviewService {
         Products product = productMapper.findById(restoredReview.getProduct_id());
         return ProductReviewConvert.convertToProductReviewDtoResponseWithUser(restoredReview, user, product);
     }
-  
+
+
+//    kiểm tra user có mua sp chưa
     private boolean checkUserHasPurchasedProduct(int userId, int productId) {
         // Lấy tất cả đơn hàng của user
         List<Orders> userOrders = orderMapper.findByUserId(userId);
@@ -314,7 +315,7 @@ public class ProductReviewServiceImpl implements ProductReviewService {
             return false;
         }
         
-        // Kiểm tra xem có đơn hàng nào chứa sản phẩm này không
+        // lấy chi tiết đơn bằng mã đơn
         for (Orders order : deliveredOrders) {
             List<OrderDetails> orderDetails = orderDetailMapper.findByOrderId(order.getOrder_id());
             

@@ -21,7 +21,7 @@ public class MoMoPaymentRequest {
     private String ipnUrl;
     private String requestType;
     private String extraData;
-    private String autoCapture;
+    private Boolean autoCapture;
     private String lang;
     private String signature;
 }

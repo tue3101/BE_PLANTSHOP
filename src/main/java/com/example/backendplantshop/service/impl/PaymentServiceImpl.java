@@ -101,10 +101,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .collect(Collectors.toList());
     }
     
-    /**
-     * Helper method: Validate logic giữa order status, shipping status và payment status
-     * (Tương tự như trong OrderServiceImpl)
-     */
+
     private void validateOrderStatusLogic(OrderSatus orderStatus, ShippingStatus shippingStatus, PaymentStatus paymentStatus) {
         // 1. PENDING_CONFIRMATION + SHIPPING/DELIVERED → Không hợp lý
         if (orderStatus == OrderSatus.PENDING_CONFIRMATION) {
@@ -165,19 +162,18 @@ public class PaymentServiceImpl implements PaymentService {
         
         // Lấy payment status mới sau khi update (tạm thời dùng status mới)
         // Lưu ý: Cần lấy payment status từ tất cả payments của order
-        List<Payment> allPayments = paymentMapper.findByOrderId(payment.getOrder_id());
+//        List<Payment> allPayments = paymentMapper.findByOrderId(payment.getOrder_id());
         PaymentStatus effectivePaymentStatus = status; // Status mới sẽ được set
-        
-        // Nếu có payment SUCCESS khác, ưu tiên SUCCESS
-        if (status != PaymentStatus.SUCCESS) {
-            Payment successPayment = allPayments.stream()
-                    .filter(p -> p.getPayment_id() != paymentId && p.getStatus() == PaymentStatus.SUCCESS)
-                    .findFirst()
-                    .orElse(null);
-            if (successPayment != null) {
-                effectivePaymentStatus = PaymentStatus.SUCCESS;
-            }
-        }
+
+//        if (status != PaymentStatus.SUCCESS) {
+//            Payment successPayment = allPayments.stream()
+//                    .filter(p -> p.getPayment_id() != paymentId && p.getStatus() == PaymentStatus.SUCCESS)
+//                    .findFirst()
+//                    .orElse(null);
+//            if (successPayment != null) {
+//                effectivePaymentStatus = PaymentStatus.SUCCESS;
+//            }
+//        }
         
         // Validate logic trước khi update
         ShippingStatus currentShippingStatus = order.getShipping_status() != null 
@@ -198,6 +194,8 @@ public class PaymentServiceImpl implements PaymentService {
     }
     
     @Override
+    //đảm bảo commit trạng thái của giao dịch của đơn hàng dù cho trạng thais đơn bị lỗi
+    //requires_new nó sẽ tách ra  một transaction mới chạy riêng biệt với transaction của order
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void updatePaymentsByOrderId(int orderId, PaymentStatus status) {
         List<Payment> payments = paymentMapper.findByOrderId(orderId);

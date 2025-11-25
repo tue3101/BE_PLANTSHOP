@@ -13,6 +13,6 @@ public interface PaymentMapper {
     List<Payment> findByOrderId(@Param("orderID") int orderId);
     List<Payment> getAll();
     void update(Payment payment);
-    void delete(@Param("paymentID") int paymentId);
+//    void delete(@Param("paymentID") int paymentId);
 }
 

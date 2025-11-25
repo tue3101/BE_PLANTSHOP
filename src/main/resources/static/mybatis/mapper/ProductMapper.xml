@@ -27,7 +27,9 @@
           AND is_deleted = 0
     </select>
 
-    <select id="findByProductNameAndSize" resultMap="ProductResultMap">
+
+<!--     kiểm tra trùng bản ghi-->
+    <select id="findByProductName_Size_Category" resultMap="ProductResultMap">
         SELECT *
         FROM products
         WHERE product_name = #{productName}
@@ -107,6 +109,8 @@
         AND is_deleted = 1
     </update>
 
+
+<!--    update số lượng trong giỏ hàng-->
     <update id="updateProductQuantity">
         UPDATE products
         SET quantity = quantity - #{quantity},

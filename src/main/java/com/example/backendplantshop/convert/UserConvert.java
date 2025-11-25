@@ -2,8 +2,10 @@ package com.example.backendplantshop.convert;
 
 import com.example.backendplantshop.dto.request.users.RegisterDtoRequest;
 import com.example.backendplantshop.dto.request.users.UserDtoRequest;
+import com.example.backendplantshop.dto.response.user.LoginDtoResponse;
 import com.example.backendplantshop.dto.response.user.RegisterDtoResponse;
 import com.example.backendplantshop.dto.response.user.UserDtoResponse;
+import com.example.backendplantshop.entity.UserTokens;
 import com.example.backendplantshop.entity.Users;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -66,5 +68,30 @@ public class UserConvert {
                 .is_deleted(existingUser.getIs_deleted())
                 .build();
     }
+
+
+    public static UserTokens toUserToken(Users users, String refreshToken) {
+        return UserTokens.builder()
+                .user_id(users.getUser_id())
+                .token(refreshToken)
+                .expires_at(LocalDateTime.now().plusDays(7))
+                .revoked(false)
+                .build();
+    }
+
+    public static LoginDtoResponse toLoginDtoResponse(String accessToken, String refreshToken) {
+        return LoginDtoResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
+    }
+
+    public static LoginDtoResponse fromTokens(String accessToken, UserTokens existingToken) {
+        return LoginDtoResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(existingToken.getToken())
+                .build();
+    }
+
 
 }

@@ -36,6 +36,8 @@
         AND is_deleted = 0
     </select>
 
+
+<!--    tìm sp theo danh mục-->
     <select id="findProductByCategory" resultMap="CategoryResultMap">
         SELECT c.category_id
                ,c.category_name
@@ -87,13 +89,16 @@
     </delete>
 
 
+<!--    kiểm tra trùng danh mục-->
     <select id="findByName" resultMap="CategoryResultMap">
         SELECT *
         FROM category
         WHERE category_name = #{categoryName}
         AND is_deleted = 0
     </select>
-    
+
+
+<!--    kiểm tra trùng danh mục để restore nếu danh mục bị xóa-->
     <select id="findByNameIgnoreDeleted" resultMap="CategoryResultMap">
         SELECT *
         FROM category
@@ -108,7 +113,7 @@
           AND is_deleted = 1
     </select>
 
-    <!-- Đếm số sản phẩm trong danh mục -->
+    <!-- Đếm số sản phẩm trong danh mục để kiểm tra xóa danh mục -->
     <select id="countProductsByCategory" parameterType="int" resultType="int">
         SELECT COUNT(*)
         FROM products

@@ -8,6 +8,7 @@ import com.example.backendplantshop.enums.ErrorCode;
 import com.example.backendplantshop.exception.AppException;
 import com.example.backendplantshop.mapper.ProductMapper;
 import com.example.backendplantshop.mapper.CategoryMapper;
+import com.example.backendplantshop.mapper.OrderDetailMapper;
 import com.example.backendplantshop.convert.ProductConvert;
 import com.example.backendplantshop.service.intf.ProductService;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class ProductServiceImpl implements ProductService {
     private final CloudinaryServiceImpl cloudinaryService;
     private final CategoryMapper categoryMapper;
     private final CategoryServiceImpl categoryServiceImpl;
+    private final OrderDetailMapper orderDetailMapper;
 
 
     public ProductDtoResponse findProductById(int id){
@@ -79,7 +81,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         // Kiểm tra sản phẩm trùng tên, size và danh mục 
-        Products existingProduct = productMapper.findByProductNameAndSize(
+        Products existingProduct = productMapper.findByProductName_Size_Category(
             productRequest.getProduct_name(), 
             productRequest.getSize(),
             productRequest.getCategory_id()
@@ -139,7 +141,7 @@ public class ProductServiceImpl implements ProductService {
 
 
         // Kiểm tra trùng tên + size + danh mục
-        Products duplicate = productMapper.findByProductNameAndSize(productRequest.getProduct_name(), productRequest.getSize(), productRequest.getCategory_id());
+        Products duplicate = productMapper.findByProductName_Size_Category(productRequest.getProduct_name(), productRequest.getSize(), productRequest.getCategory_id());
         if (duplicate != null && duplicate.getProduct_id() != id) {
             throw new AppException(ErrorCode.PRODUCT_ALREADY_EXISTS);
         }
@@ -163,6 +165,10 @@ public class ProductServiceImpl implements ProductService {
         }
         if(productMapper.findById(id)==null){
             throw new AppException(ErrorCode.PRODUCT_NOT_EXISTS);
+        }
+        int activeOrderCount = orderDetailMapper.countActiveOrderDetailsByProductId(id);
+        if (activeOrderCount > 0) {
+            throw new AppException(ErrorCode.PRODUCT_IN_ORDER_NOT_DELETABLE);
         }
         productMapper.delete(id);
     }

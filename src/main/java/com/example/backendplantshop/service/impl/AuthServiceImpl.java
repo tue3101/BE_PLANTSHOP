@@ -123,13 +123,8 @@ public class AuthServiceImpl implements AuthenticationService {
         try {
             otpService.markOtpAsUsed(registerDtoRequest.getEmail(), registerDtoRequest.getOtpCode());
             otpService.updateUserIdForOtp(registerDtoRequest.getEmail(), registerDtoRequest.getOtpCode(), users.getUser_id());
-            log.info("Đã mark OTP và cập nhật user_id = {} cho OTP đăng ký của email: {}", users.getUser_id(), registerDtoRequest.getEmail());
         } catch (Exception e) {
-            log.warn("Không thể mark OTP hoặc cập nhật user_id cho OTP của email {}: {}", registerDtoRequest.getEmail(), e.getMessage());
-            // Không throw exception để không rollback đăng ký
         }
-
-        log.info("Đã đăng ký thành công user với email: {}", registerDtoRequest.getEmail());
         // Trả về thông tin user đã đăng ký
         return UserConvert.convertUsersToRegisterDtoResponse(users);
     }
@@ -173,7 +168,6 @@ public class AuthServiceImpl implements AuthenticationService {
 
         // Gửi OTP
         otpService.generateAndSendOtp(email);
-        log.info("Đã gửi OTP đăng ký đến email: {} với username: {}", email, username);
     }
 
     public boolean verifyOtp(VerifyOtpDtoRequest request) {
@@ -212,17 +206,20 @@ public class AuthServiceImpl implements AuthenticationService {
         String refreshToken = jwtUtil.generateRefreshToken(users.getUser_id(), users.getRole());
 
         // Lưu token vào DB
-        userTokenService.saveToken(UserTokens.builder()
-                .user_id(users.getUser_id())
-                .token(refreshToken) // chỉ lưu refreshToken trong DB
-                .expires_at(LocalDateTime.now().plusDays(7)) // hạn refresh token
-                .revoked(false)
-                .build());
-        // Trả về accessToken + refreshToken
-        return LoginDtoResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .build();
+//        userTokenService.saveToken(UserTokens.builder()
+//                .user_id(users.getUser_id())
+//                .token(refreshToken) // chỉ lưu refreshToken trong DB
+//                .expires_at(LocalDateTime.now().plusDays(7)) // hạn refresh token
+//                .revoked(false)
+//                .build());
+//        // Trả về accessToken + refreshToken
+//        return LoginDtoResponse.builder()
+//                .accessToken(accessToken)
+//                .refreshToken(refreshToken)
+//                .build();
+
+        userTokenService.saveToken(UserConvert.toUserToken(users, refreshToken));
+        return UserConvert.toLoginDtoResponse(accessToken, refreshToken);
     }
 
     @Override
@@ -287,49 +284,15 @@ public class AuthServiceImpl implements AuthenticationService {
         // Nếu refresh token chưa hết hạn thì tạo access token mới và trả về lại refresh token cũ
         String newAccessToken = jwtUtil.generateAccessToken(id, role);
         log.info("Đã làm mới access token cho user ID: {}", id);
-        return LoginDtoResponse.builder()
-                .accessToken(newAccessToken)
-                .refreshToken(existing.getToken())
-                .build();
+//        return LoginDtoResponse.builder()
+//                .accessToken(newAccessToken)
+//                .refreshToken(existing.getToken())
+//                .build();
+
+        return UserConvert.fromTokens(newAccessToken, existing);
     }
 
-    //    @Override
-//    public void changePassword(ChangePasswordDtoRequest changePasswordDtoRequest, String authHeader) {
-//        try{
-//            // Lấy token từ Authorization header
-//            String token = (authHeader != null && authHeader.startsWith("Bearer "))
-//                    ? authHeader.substring(7)
-//                    : null;
-//
-//            if (token == null || !jwtUtil.validateToken(token) || !jwtUtil.isAccessToken(token)) {
-//                throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
-//            }
-//
-//            int currentUserId = jwtUtil.extractUserId(token);
-//            Users user = userMapper.findById(currentUserId);
-//            if (user == null) {
-//                throw new AppException(ErrorCode.USER_NOT_EXISTS);
-//            }
-//
-//            // Kiểm tra mật khẩu cũ
-//            if (!passwordEncoder.matches(changePasswordDtoRequest.getOldPassword(), user.getPassword())) {
-//                log.error("Wrong old password for user {}", currentUserId);
-//                throw new AppException(ErrorCode.INVALID_CREDENTIALS);
-//            }
-//
-//            // Mã hóa mật khẩu mới
-//            String encodedNewPassword = passwordEncoder.encode(changePasswordDtoRequest.getNewPassword());
-//            userMapper.changePassword(currentUserId, encodedNewPassword);
-//            log.info("Password changed successfully for user {}", currentUserId);
-//        }catch (AppException e) {
-//            log.error("AppException occurred while changing password for user {}: {}", e.getMessage());
-//            throw e; // ném lại để ControllerAdvice xử lý trả response lỗi
-//        } catch (Exception e) {
-//            log.error("Unexpected error while changing password for user {}: {}", e.getMessage(), e);
-//            throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
-//        }
-//
-//    }
+
     @Override
     public void changePassword(ChangePasswordDtoRequest changePasswordDtoRequest, String authHeader) {
         // Lấy token từ Authorization header
@@ -373,7 +336,7 @@ public class AuthServiceImpl implements AuthenticationService {
 
         String email = clean(request.getEmail());
         
-        // Kiểm tra email PHẢI TỒN TẠI (ngược với register)
+        // Kiểm tra email PHẢI TỒN TẠI
         Users existingUser = userMapper.findByEmailIgnoreDeleted(email);
         if (existingUser == null || (existingUser.getIs_deleted() != null && existingUser.getIs_deleted())) {
             throw new AppException(ErrorCode.USER_NOT_EXISTS);
@@ -381,7 +344,6 @@ public class AuthServiceImpl implements AuthenticationService {
 
         // Gửi OTP với user_id (vì user đã tồn tại)
         otpService.generateAndSendOtp(email, existingUser.getUser_id());
-        log.info("Đã gửi OTP quên mật khẩu đến email: {} cho user_id: {}", email, existingUser.getUser_id());
     }
 
     @Override
@@ -393,7 +355,6 @@ public class AuthServiceImpl implements AuthenticationService {
 
         String email = clean(request.getEmail());
         
-        // Validate các trường bắt buộc
         if (email == null || request.getOtpCode() == null || request.getNewPassword() == null) {
             throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
         }
@@ -404,8 +365,7 @@ public class AuthServiceImpl implements AuthenticationService {
             throw new AppException(ErrorCode.USER_NOT_EXISTS);
         }
 
-        // Xác thực OTP (chỉ verify, chưa mark as used)
-        // Lưu ý: OTP có thể được verify nhiều lần trước khi reset password thành công
+        // Xác thực OTP
         boolean isOtpValid = otpService.verifyOtp(email, request.getOtpCode());
         if (!isOtpValid) {
             log.warn("OTP không hợp lệ cho email: {} với OTP: {}", email, request.getOtpCode());
@@ -456,12 +416,9 @@ public class AuthServiceImpl implements AuthenticationService {
 
         // Cập nhật mật khẩu (không cần OTP vì đã có token xác thực)
         updateUserPassword(currentUserId, request.getNewPassword());
-        log.info("User ID: {} đã reset mật khẩu bằng token thành công", currentUserId);
     }
 
-    /**
-     * Helper method: Cập nhật mật khẩu và thu hồi tất cả token
-     */
+
     private void updateUserPassword(int userId, String newPassword) {
         // Mã hóa mật khẩu mới và cập nhật
         String encodedNewPassword = passwordEncoder.encode(newPassword);
@@ -469,8 +426,6 @@ public class AuthServiceImpl implements AuthenticationService {
         if (rows == 0) {
             throw new AppException(ErrorCode.CHANGEPASSWORD_FAILED);
         }
-
-        // Thu hồi tất cả các token của user sau khi reset mật khẩu
         userTokenService.revokeTokensByUser(userId);
     }
 
@@ -524,7 +479,7 @@ public class AuthServiceImpl implements AuthenticationService {
                 codePreview, 
                 googleLoginDtoRequest.getRedirectUri());
             
-            // Bước 1: Exchange code → access token
+            // Exchange code → access token
             // Truyền redirectUri từ request, nếu không có thì service sẽ dùng từ config
             String accessToken;
             try {
@@ -544,7 +499,7 @@ public class AuthServiceImpl implements AuthenticationService {
             
             log.info("Đã lấy được access token từ Google thành công");
 
-            // Bước 2: Lấy thông tin user từ Google
+            // Lấy thông tin user từ Google
             Map<String, String> googleUserInfo;
             try {
                 googleUserInfo = googleAuthService.getUserInfoFromGoogle(accessToken);
@@ -564,7 +519,7 @@ public class AuthServiceImpl implements AuthenticationService {
                 throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
             }
 
-            // Bước 3: Kiểm tra user đã tồn tại chưa (kể cả is_deleted = 1)
+            //Kiểm tra user đã tồn tại chưa
             log.info("Bắt đầu kiểm tra user theo googleId (không quan tâm is_deleted): {}", googleId);
             Users existingUser = null;
             try {
@@ -613,23 +568,27 @@ public class AuthServiceImpl implements AuthenticationService {
                     }
                 }
                 
-                // Tiếp tục với việc tạo JWT tokens (nhảy xuống Bước 5)
-                // Bước 5: Tạo JWT tokens (giống login thường)
+                // Tạo JWT tokens
                 String jwtAccessToken = jwtUtil.generateAccessToken(user.getUser_id(), user.getRole());
                 String jwtRefreshToken = jwtUtil.generateRefreshToken(user.getUser_id(), user.getRole());
 
                 // Lưu refresh token vào DB
-                userTokenService.saveToken(UserTokens.builder()
-                        .user_id(user.getUser_id())
-                        .token(jwtRefreshToken)
-                        .expires_at(LocalDateTime.now().plusDays(7))
-                        .revoked(false)
-                        .build());
+//                userTokenService.saveToken(UserTokens.builder()
+//                        .user_id(user.getUser_id())
+//                        .token(jwtRefreshToken)
+//                        .expires_at(LocalDateTime.now().plusDays(7))
+//                        .revoked(false)
+//                        .build());
+//
+//                return LoginDtoResponse.builder()
+//                        .accessToken(jwtAccessToken)
+//                        .refreshToken(jwtRefreshToken)
+//                        .build();
+                userTokenService.saveToken(UserConvert.toUserToken(user, jwtRefreshToken));
 
-                return LoginDtoResponse.builder()
-                        .accessToken(jwtAccessToken)
-                        .refreshToken(jwtRefreshToken)
-                        .build();
+                return UserConvert.toLoginDtoResponse(jwtAccessToken,jwtRefreshToken);
+
+
             }
 
             // Bước 4: Nếu user chưa tồn tại, tạo mới
@@ -675,17 +634,21 @@ public class AuthServiceImpl implements AuthenticationService {
             String jwtRefreshToken = jwtUtil.generateRefreshToken(user.getUser_id(), user.getRole());
 
             // Lưu refresh token vào DB
-            userTokenService.saveToken(UserTokens.builder()
-                    .user_id(user.getUser_id())
-                    .token(jwtRefreshToken)
-                    .expires_at(LocalDateTime.now().plusDays(7))
-                    .revoked(false)
-                    .build());
+//            userTokenService.saveToken(UserTokens.builder()
+//                    .user_id(user.getUser_id())
+//                    .token(jwtRefreshToken)
+//                    .expires_at(LocalDateTime.now().plusDays(7))
+//                    .revoked(false)
+//                    .build());
+//
+//            return LoginDtoResponse.builder()
+//                    .accessToken(jwtAccessToken)
+//                    .refreshToken(jwtRefreshToken)
+//                    .build();
 
-            return LoginDtoResponse.builder()
-                    .accessToken(jwtAccessToken)
-                    .refreshToken(jwtRefreshToken)
-                    .build();
+            userTokenService.saveToken(UserConvert.toUserToken(user, jwtRefreshToken));
+
+            return UserConvert.toLoginDtoResponse(jwtAccessToken,jwtRefreshToken);
 
         } catch (AppException e) {
             log.error("AppException khi đăng nhập Google: code={}, message={}", 
@@ -693,9 +656,6 @@ public class AuthServiceImpl implements AuthenticationService {
             log.error("Stack trace AppException: ", e);
             throw e;
         } catch (Exception e) {
-            log.error("Exception không mong muốn khi đăng nhập với Google: {}", e.getMessage(), e);
-            log.error("Exception class: {}, cause: {}", e.getClass().getName(), e.getCause());
-            
             // Kiểm tra xem có phải lỗi từ Google không
             String errorMessage = e.getMessage();
             if (errorMessage != null && errorMessage.contains("Google")) {

@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface CartDetailService {
     // Lấy danh sách chi tiết giỏ hàng theo cartId
-    List<CartDetails> getCartDetailsByCartId(int cartId);
+    List<CartDetails>  getCartDetailsByCartId(int cartId);
 
 
     // Thêm sản phẩm vào giỏ (nếu đã tồn tại thì tăng số lượng)

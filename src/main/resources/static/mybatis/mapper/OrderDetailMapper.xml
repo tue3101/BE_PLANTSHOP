@@ -18,8 +18,23 @@
     </resultMap>
 
     <insert id="insert" parameterType="OrderDetail" useGeneratedKeys="true" keyProperty="order_detail_id">
-        INSERT INTO order_details (quantity, price_at_order, sub_total, note, created_at, updated_at, product_id, order_id, is_deleted)
-        VALUES (#{quantity}, #{price_at_order}, #{sub_total}, #{note}, #{created_at}, #{updated_at}, #{product_id}, #{order_id}, #{is_deleted})
+        INSERT INTO order_details (quantity,
+                                   price_at_order,
+                                   sub_total, note,
+                                   created_at,
+                                   updated_at,
+                                   product_id,
+                                   order_id,
+                                   is_deleted)
+        VALUES (#{quantity},
+                #{price_at_order},
+                #{sub_total},
+                #{note},
+                #{created_at},
+                #{updated_at},
+                #{product_id},
+                #{order_id},
+                #{is_deleted})
     </insert>
 
     <select id="findById" parameterType="int" resultMap="OrderDetailResultMap">
@@ -60,7 +75,16 @@
         WHERE order_id = #{orderID}
     </update>
 
+    <select id="countActiveOrderDetailsByProductId" resultType="int" parameterType="int">
+        SELECT COUNT(1)
+        FROM order_details
+        WHERE product_id = #{productID}
+          AND is_deleted = 0
+    </select>
+
     <!-- Top products by date -->
+<!--    distinct loại bỏ các giá trị trùng lặp-->
+<!--    INNER JOIN chỉ trả về những dòng cả 2 bảng khớp-->
     <select id="getTopProductsByDate" resultType="map">
         SELECT 
             od.product_id,

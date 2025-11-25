@@ -21,5 +21,7 @@ public interface OrderDetailMapper {
     List<Map<String, Object>> getTopProductsByDate(@Param("year") int year, @Param("month") int month, @Param("day") int day, @Param("limit") int limit);
     List<Map<String, Object>> getTopProductsByMonth(@Param("year") int year, @Param("month") int month, @Param("limit") int limit);
     List<Map<String, Object>> getTopProductsByYear(@Param("year") int year, @Param("limit") int limit);
+
+    int countActiveOrderDetailsByProductId(@Param("productID") int productId);
 }
 

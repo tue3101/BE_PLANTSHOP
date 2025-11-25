@@ -90,6 +90,19 @@ public class OrderController {
                 .build();
     }
 
+//    @PutMapping("/{orderId}/shipping-info")
+//    public ApiResponse<OrderDtoResponse> updateShippingInfo(
+//            @PathVariable("orderId") int orderId,
+//            @Valid @RequestBody UpdateShippingInfoDtoRequest request) {
+//        OrderDtoResponse order = orderService.updateShippingInfo(orderId, request);
+//        return ApiResponse.<OrderDtoResponse>builder()
+//                .statusCode(ErrorCode.UPDATE_SUCCESSFULL.getCode())
+//                .success(Boolean.TRUE)
+//                .message(ErrorCode.UPDATE_SUCCESSFULL.getMessage())
+//                .data(order)
+//                .build();
+//    }
+
     @DeleteMapping("/{orderId}")
     public ApiResponse<Void> deleteOrder(@PathVariable("orderId") int orderId) {
         orderService.deleteOrder(orderId);

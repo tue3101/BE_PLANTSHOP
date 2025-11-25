@@ -11,6 +11,8 @@ import com.example.backendplantshop.service.intf.MoMoService;
 import com.example.backendplantshop.util.MoMoUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -21,7 +23,8 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class MoMoServiceImpl implements MoMoService {
-    
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     private final MoMoConfig momoConfig;
     private final RestTemplate restTemplate;
     
@@ -88,6 +91,10 @@ public class MoMoServiceImpl implements MoMoService {
                     rawHash
             );
             
+            if (log.isDebugEnabled()) {
+                log.debug("MoMo raw hash trước khi ký: {}", rawHash);
+            }
+            
             // Tạo MoMo payment request
             MoMoPaymentRequest momoRequest = MoMoPaymentRequest.builder()
                     .partnerCode(momoConfig.getPartnerCode())
@@ -101,10 +108,18 @@ public class MoMoServiceImpl implements MoMoService {
                     .ipnUrl(momoConfig.getNotifyUrl())
                     .requestType(momoConfig.getRequestType())
                     .extraData(extraData)
-                    .autoCapture("true")
+                    .autoCapture(Boolean.TRUE)
                     .lang(momoConfig.getLang())
                     .signature(signature)
                     .build();
+            
+            if (log.isDebugEnabled()) {
+                try {
+                    log.debug("MoMo payload gửi đi: {}", OBJECT_MAPPER.writeValueAsString(momoRequest));
+                } catch (JsonProcessingException e) {
+                    log.warn("Không thể serialize MoMo payload để log: {}", e.getMessage());
+                }
+            }
             
             // Gọi MoMo API
             HttpHeaders headers = new HttpHeaders();
@@ -122,14 +137,14 @@ public class MoMoServiceImpl implements MoMoService {
             }
             
             // Tự động sửa URL nếu thiếu /create
-            if (!apiEndpoint.endsWith("/create")) {
-                log.warn("MoMo API endpoint thiếu /create. Tự động sửa từ: {}", apiEndpoint);
-                // Loại bỏ dấu / ở cuối nếu có, rồi thêm /create
-                apiEndpoint = apiEndpoint.replaceAll("/+$", "") + "/create";
-                log.info("URL đã được sửa thành: {}", apiEndpoint);
-            }
+//            if (!apiEndpoint.endsWith("/create")) {
+//                log.warn("MoMo API endpoint thiếu /create. Tự động sửa từ: {}", apiEndpoint);
+//                // Loại bỏ dấu / ở cuối nếu có, rồi thêm /create
+//                apiEndpoint = apiEndpoint.replaceAll("/+$", "") + "/create";
+//                log.info("URL đã được sửa thành: {}", apiEndpoint);
+//            }
             
-            log.info("MoMo API Endpoint: {}", apiEndpoint);
+//            log.info("MoMo API Endpoint: {}", apiEndpoint);
             
             ResponseEntity<MoMoPaymentResponse> response = restTemplate.exchange(
                     apiEndpoint,
