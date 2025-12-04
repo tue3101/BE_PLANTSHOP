@@ -13,10 +13,10 @@ public interface OrderMapper {
     Orders findById(@Param("orderID") int orderId);
     List<Orders> findByUserId(@Param("userID") int userId);
     void update(Orders order);
-    void updateShippingInfo(@Param("orderId") int orderId, 
-                            @Param("shippingName") String shippingName,
-                            @Param("shippingAddress") String shippingAddress,
-                            @Param("shippingPhone") String shippingPhone);
+//    void updateShippingInfo(@Param("orderId") int orderId,
+//                            @Param("shippingName") String shippingName,
+//                            @Param("shippingAddress") String shippingAddress,
+//                            @Param("shippingPhone") String shippingPhone);
     void delete(@Param("orderID") int orderId);
     List<Orders> getAll();
     

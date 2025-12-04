@@ -23,5 +23,13 @@
         WHERE is_deleted = 0
         ORDER BY method_id
     </select>
+
+    <select id="findByName" parameterType="string" resultMap="PaymentMethodResultMap">
+        SELECT *
+        FROM payment_method
+        WHERE LOWER(method_name) = LOWER(#{methodName})
+          AND is_deleted = 0
+        LIMIT 1
+    </select>
 </mapper>
 

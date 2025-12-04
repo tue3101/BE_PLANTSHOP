@@ -60,30 +60,14 @@ public class ProductReviewServiceImpl implements ProductReviewService {
             throw new AppException(ErrorCode.LIST_NOT_FOUND);
         }
         
-        // Kiểm tra user đã có đơn hàng thành công (DELIVERED) chứa sản phẩm này chưa
-        boolean hasPurchasedProduct = checkUserHasPurchasedProduct(currentUserId, request.getProduct_id());
-        if (!hasPurchasedProduct) {
-            log.warn("User chưa mua sản phẩm này hoặc đơn hàng chưa thành công: user_id={}, product_id={}", 
-                    currentUserId, request.getProduct_id());
-            throw new AppException(ErrorCode.ACCESS_DENIED); // Có thể tạo ErrorCode mới cho trường hợp này
-        }
+        // Kiểm tra order_detail hợp lệ và thuộc user hiện tại
+        OrderDetails orderDetail = validateOrderDetailForReview(currentUserId, request);
         
-        // Kiểm tra user đã review sản phẩm này chưa
-        // Nếu đã review, cập nhật review cũ thay vì tạo mới
-        List<ProductReview> existingReviews = productReviewMapper.findByProductIdAndUserId(
-                request.getProduct_id(), currentUserId);
-        if (!existingReviews.isEmpty()) {
-            // User đã review, cập nhật review cũ
-            ProductReview existingReview = existingReviews.get(0);
-            log.info("User đã review sản phẩm này, cập nhật review cũ: review_id={}, user_id={}, product_id={}", 
-                    existingReview.getReview_id(), currentUserId, request.getProduct_id());
-            
-            LocalDateTime now = LocalDateTime.now();
-            ProductReview updatedReview = ProductReviewConvert.convertToUpdatedProductReview(existingReview, request, now);
-            productReviewMapper.update(updatedReview);
-            
-            Users user = userMapper.findById(currentUserId);
-            return ProductReviewConvert.convertToProductReviewDtoResponseWithUser(updatedReview, user, product);
+        // Mỗi order_detail chỉ được đánh giá một lần
+        ProductReview existingReview = productReviewMapper.findByOrderDetailId(orderDetail.getOrder_detail_id());
+        if (existingReview != null) {
+            log.warn("Chi tiết đơn hàng {} đã có review {}", orderDetail.getOrder_detail_id(), existingReview.getReview_id());
+            throw new AppException(ErrorCode.REVIEW_ALREADY_EXISTS);
         }
         
         // Tạo review
@@ -98,7 +82,9 @@ public class ProductReviewServiceImpl implements ProductReviewService {
         Users user = userMapper.findById(currentUserId);
         return ProductReviewConvert.convertToProductReviewDtoResponseWithUser(review, user, product);
     }
-    
+
+
+    //hàm lấy review thuộc sản phẩm của user (cho admin xem chi tiết)
     @Override
     public ProductReviewDtoResponse getReviewById(int reviewId) {
         ProductReview review = productReviewMapper.findById(reviewId);
@@ -111,7 +97,9 @@ public class ProductReviewServiceImpl implements ProductReviewService {
         Products product = productMapper.findById(review.getProduct_id());
         return ProductReviewConvert.convertToProductReviewDtoResponseWithUser(review, user, product);
     }
-    
+
+
+    //hàm lấy các review của sản phẩm đó (để xem tất cả review của sp khi vào trang chi tiết)
     @Override
     public List<ProductReviewDtoResponse> getReviewsByProductId(int productId) {
         // Kiểm tra sản phẩm có tồn tại không
@@ -126,12 +114,13 @@ public class ProductReviewServiceImpl implements ProductReviewService {
         return reviews.stream()
                 .map(review -> {
                     Users user = userMapper.findById(review.getUser_id());
-                    Products productForReview = productMapper.findById(review.getProduct_id());
-                    return ProductReviewConvert.convertToProductReviewDtoResponseWithUser(review, user, productForReview);
+                    return ProductReviewConvert.convertToProductReviewDtoResponseWithUser(review, user, product);
                 })
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()); ////gom các kết quả sau khi map thành 1 list
     }
-    
+
+
+    //hàm lấy review của user (khi user xem lại đánh giá của mình trong đơn hàng)
     @Override
     public List<ProductReviewDtoResponse> getReviewsByUserId(int userId) {
         // Kiểm tra quyền: user chỉ xem được review của chính mình, admin xem được tất cả
@@ -175,6 +164,14 @@ public class ProductReviewServiceImpl implements ProductReviewService {
             throw new AppException(ErrorCode.ACCESS_DENIED);
         }
         
+        if (request.getProduct_id() == null || request.getOrder_detail_id() == null ||
+                existingReview.getProduct_id() != request.getProduct_id() ||
+                existingReview.getOrder_detail_id() != request.getOrder_detail_id()) {
+            log.warn("Yêu cầu cập nhật review không khớp order detail hoặc sản phẩm: review_id={}, user_id={}",
+                    reviewId, currentUserId);
+            throw new AppException(ErrorCode.ORDER_DETAIL_PRODUCT_MISMATCH);
+        }
+        
         // Cập nhật review
         LocalDateTime now = LocalDateTime.now();
         ProductReview updatedReview = ProductReviewConvert.convertToUpdatedProductReview(existingReview, request, now);
@@ -211,7 +208,9 @@ public class ProductReviewServiceImpl implements ProductReviewService {
         productReviewMapper.delete(reviewId);
         log.info("Đã xóa review: review_id={}", reviewId);
     }
-    
+
+
+    //lấy tất cả các đánh giá (admin)
     @Override
     public List<ProductReviewDtoResponse> getAllReviews() {
         // Chỉ admin mới được xem tất cả review
@@ -294,45 +293,44 @@ public class ProductReviewServiceImpl implements ProductReviewService {
         return ProductReviewConvert.convertToProductReviewDtoResponseWithUser(restoredReview, user, product);
     }
 
+    //kiểm tra các điều kiện để được đánh giá
+    private OrderDetails validateOrderDetailForReview(int userId, ProductReviewDtoRequest request) {
+        if (request.getOrder_detail_id() == null) {
+            throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
+        }
 
-//    kiểm tra user có mua sp chưa
-    private boolean checkUserHasPurchasedProduct(int userId, int productId) {
-        // Lấy tất cả đơn hàng của user
-        List<Orders> userOrders = orderMapper.findByUserId(userId);
-        
-        if (userOrders == null || userOrders.isEmpty()) {
-            log.debug("User chưa có đơn hàng nào: user_id={}", userId);
-            return false;
+        OrderDetails orderDetail = orderDetailMapper.findById(request.getOrder_detail_id());
+        if (orderDetail == null) {
+            log.warn("Không tìm thấy order_detail_id={} để đánh giá", request.getOrder_detail_id());
+            throw new AppException(ErrorCode.LIST_NOT_FOUND);
         }
-        
-        // Lọc các đơn hàng có status DELIVERED (thành công)
-        List<Orders> deliveredOrders = userOrders.stream()
-                .filter(order -> order.getShipping_status() == ShippingStatus.DELIVERED)
-                .collect(Collectors.toList());
-        
-        if (deliveredOrders.isEmpty()) {
-            log.debug("User chưa có đơn hàng thành công: user_id={}", userId);
-            return false;
+
+        //kiểm tra chi tiết đơn có khớp với sp ko
+        if (orderDetail.getProduct_id() != request.getProduct_id()) {
+            log.warn("order_detail_id={} không thuộc product_id={} (thực tế product_id={})",
+                    request.getOrder_detail_id(), request.getProduct_id(), orderDetail.getProduct_id());
+            throw new AppException(ErrorCode.ORDER_DETAIL_PRODUCT_MISMATCH);
         }
-        
-        // lấy chi tiết đơn bằng mã đơn
-        for (Orders order : deliveredOrders) {
-            List<OrderDetails> orderDetails = orderDetailMapper.findByOrderId(order.getOrder_id());
-            
-            // Kiểm tra xem đơn hàng có chứa sản phẩm này không
-            boolean containsProduct = orderDetails.stream()
-                    .anyMatch(detail -> detail.getProduct_id() == productId);
-            
-            if (containsProduct) {
-                log.info("User đã mua sản phẩm này trong đơn hàng thành công: user_id={}, product_id={}, order_id={}", 
-                        userId, productId, order.getOrder_id());
-                return true;
-            }
+
+        Orders order = orderMapper.findById(orderDetail.getOrder_id());
+        if (order == null) {
+            log.warn("Không tìm thấy order_id={} cho order_detail_id={}", orderDetail.getOrder_id(), orderDetail.getOrder_detail_id());
+            throw new AppException(ErrorCode.LIST_NOT_FOUND);
         }
-        
-        log.debug("User chưa mua sản phẩm này trong đơn hàng thành công: user_id={}, product_id={}", 
-                userId, productId);
-        return false;
+
+        //kiểm tra user đang đánh giá có phải user đang login
+        if (order.getUser_id() != userId) {
+            log.warn("User {} cố gắng đánh giá order_detail {} không thuộc sở hữu", userId, orderDetail.getOrder_detail_id());
+            throw new AppException(ErrorCode.ACCESS_DENIED);
+        }
+
+        //kiểm tra đơn giao thaành công chưa
+        if (order.getShipping_status() != ShippingStatus.DELIVERED) {
+            log.warn("Đơn hàng {} chưa giao thành công nên chưa thể đánh giá", order.getOrder_id());
+            throw new AppException(ErrorCode.ORDER_NOT_DELIVERED_FOR_REVIEW);
+        }
+
+        return orderDetail;
     }
 }
 

@@ -10,5 +10,6 @@ import java.util.List;
 public interface PaymentMethodMapper {
     PaymentMethod findById(@Param("methodID") int methodId);
     List<PaymentMethod> getAll();
+    PaymentMethod findByName(@Param("methodName") String methodName);
 }
 

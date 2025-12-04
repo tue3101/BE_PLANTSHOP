@@ -110,10 +110,19 @@
     </update>
 
 
-<!--    update số lượng trong giỏ hàng-->
+<!--    update số lượng trong giỏ hàng (trừ số lượng mua)-->
     <update id="updateProductQuantity">
         UPDATE products
         SET quantity = quantity - #{quantity},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE product_id = #{productID}
+        AND is_deleted = 0
+    </update>
+
+<!--    restore số lượng sản phẩm (cộng lại số lượng khi hủy đơn)-->
+    <update id="restoreProductQuantity">
+        UPDATE products
+        SET quantity = quantity + #{quantity},
             updated_at = CURRENT_TIMESTAMP
         WHERE product_id = #{productID}
         AND is_deleted = 0

@@ -17,6 +17,7 @@ public class ProductReviewDtoResponse {
     private int rating;
     private String comment;
     private int product_id;
+    private int order_detail_id;
     private int user_id;
     private UserDtoResponse user; // Thông tin user đầy đủ
     private ProductDtoResponse product;

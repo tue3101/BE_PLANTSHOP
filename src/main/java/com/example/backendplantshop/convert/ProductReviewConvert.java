@@ -16,6 +16,7 @@ public class ProductReviewConvert {
     public static ProductReview convertToProductReview(ProductReviewDtoRequest request, int userId, LocalDateTime now) {
         return ProductReview.builder()
                 .product_id(request.getProduct_id())
+                .order_detail_id(request.getOrder_detail_id())
                 .user_id(userId)
                 .rating(request.getRating())
                 .comment(request.getComment() != null ? request.getComment() : "")
@@ -32,6 +33,7 @@ public class ProductReviewConvert {
                 .rating(review.getRating())
                 .comment(review.getComment())
                 .product_id(review.getProduct_id())
+                .order_detail_id(review.getOrder_detail_id())
                 .user_id(review.getUser_id())
                 .created_at(review.getCreated_at())
                 .updated_at(review.getUpdated_at())
@@ -61,6 +63,7 @@ public class ProductReviewConvert {
         return ProductReview.builder()
                 .review_id(existingReview.getReview_id())
                 .product_id(existingReview.getProduct_id())
+                .order_detail_id(existingReview.getOrder_detail_id())
                 .user_id(existingReview.getUser_id())
                 .rating(request.getRating())
                 .comment(request.getComment() != null ? request.getComment() : "")

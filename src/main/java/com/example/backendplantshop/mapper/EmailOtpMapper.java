@@ -12,6 +12,6 @@ public interface EmailOtpMapper {
 //    void deleteExpiredOtps();
 //    EmailOtp findLatestByEmail(@Param("email") String email);
     void updateUserIdByEmailAndOtp(@Param("email") String email, @Param("otpCode") String otpCode, @Param("userId") Integer userId);
-    EmailOtp findByEmailAndOtpForMark(@Param("email") String email, @Param("otpCode") String otpCode);
+//    EmailOtp findByEmailAndOtpForMark(@Param("email") String email, @Param("otpCode") String otpCode);
 }
 

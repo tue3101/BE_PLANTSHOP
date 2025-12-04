@@ -12,7 +12,6 @@
         <result column="phone_number" property="phone_number"/>
         <result column="address" property="address"/>
         <result column="role" property="role"/>
-        <result column="google_id" property="google_id"/>
         <result column="created_at" property="created_at"/>
         <result column="updated_at" property="updated_at"/>
         <result column="is_deleted" property="is_deleted"/>
@@ -45,21 +44,10 @@
           AND is_deleted = 0
     </select>
 
-    <select id="findByGoogleId" resultMap="UserResultMap">
-        SELECT * FROM users
-        WHERE google_id = #{googleId}
-        AND is_deleted = 0
-    </select>
-
-<!--    tìm mail hoặc google id trong trường hợp user bị vô  hiệu hóa tk-->
+<!--    tìm mail trong trường hợp user bị vô  hiệu hóa tk-->
     <select id="findByEmailIgnoreDeleted" resultMap="UserResultMap">
         SELECT * FROM users
         WHERE email = #{email}
-    </select>
-    
-    <select id="findByGoogleIdIgnoreDeleted" resultMap="UserResultMap">
-        SELECT * FROM users
-        WHERE google_id = #{googleId}
     </select>
     
     <select id="findAll" resultMap="UserResultMap">
@@ -91,7 +79,6 @@
             , password
             , username
             , phone_number
-            , google_id
             , role
         )
         VALUES (
@@ -99,7 +86,6 @@
                    , #{password}
                    , #{username}
                    , #{phone_number}
-                   , #{google_id}
                    , COALESCE(#{role}, 'USER')
                )
     </insert>
@@ -110,7 +96,7 @@
           , phone_number =  #{phone_number}
           , address=  #{address}
           , role =  #{role}
-          , google_id = #{google_id}
+          , updated_at = CURRENT_TIMESTAMP
         WHERE user_id = #{user_id}
     </update>
 

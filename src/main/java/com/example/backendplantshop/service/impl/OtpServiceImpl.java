@@ -24,12 +24,16 @@ public class OtpServiceImpl implements OtpService {
     private static final int OTP_EXPIRY_MINUTES = 5;
     private static final SecureRandom random = new SecureRandom();
 
+
+    //tạo otp cho đăng ký vì ban đầu đk userid sẽ là null
     @Override
     @Transactional
     public String generateAndSendOtp(String email) {
         return generateAndSendOtp(email, null);
     }
-    
+
+
+    //hàm tạo và gửi otp
     @Override
     @Transactional
     public String generateAndSendOtp(String email, Integer userId) {
@@ -65,7 +69,7 @@ public class OtpServiceImpl implements OtpService {
     public boolean verifyOtp(String email, String otpCode) {
         // Chỉ verify OTP, KHÔNG mark as used
         // OTP sẽ được mark as used sau khi reset password/register thành công
-        // Tìm OTP với otp_code chính xác (không quan tâm thứ tự, vì đã có điều kiện otp_code)
+        // Tìm OTP với otp_code chính xác
         EmailOtp emailOtp = emailOtpMapper.findByEmailAndOtp(email, otpCode);
         
         if (emailOtp == null) {
@@ -77,12 +81,16 @@ public class OtpServiceImpl implements OtpService {
         return true;
     }
 
+
+    //đánh dấu otp đã được sử dụng
     @Override
     @Transactional
     public void markOtpAsUsed(String email, String otpCode) {
         // Tìm OTP chưa được mark và mark as used
-        EmailOtp emailOtp = emailOtpMapper.findByEmailAndOtpForMark(email, otpCode);
-        
+//        EmailOtp emailOtp = emailOtpMapper.findByEmailAndOtpForMark(email, otpCode);
+        EmailOtp emailOtp = emailOtpMapper.findByEmailAndOtp(email, otpCode);
+
+
         if (emailOtp != null) {
             emailOtpMapper.markAsUsed(emailOtp.getOtp_id());
             log.info("Đã đánh dấu OTP ID: {} đã sử dụng cho email: {} với OTP: {}", emailOtp.getOtp_id(), email, otpCode);
@@ -91,6 +99,8 @@ public class OtpServiceImpl implements OtpService {
         }
     }
 
+
+    //cập nhật lại userid sau khi đk thành công
     @Override
     @Transactional
     public void updateUserIdForOtp(String email, String otpCode, Integer userId) {

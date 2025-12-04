@@ -11,12 +11,10 @@ public interface UserMapper {
     Users findByEmail(String email);
     Users findByPhoneNumber(String phoneNumber);
     Users findByUsername(String username);
-    Users findByGoogleId(@Param("googleId") String googleId);
     Users findById(@Param("userID")int id);
     
     // Tìm user không quan tâm đến is_deleted (để kiểm tra tồn tại)
     Users findByEmailIgnoreDeleted(String email);
-    Users findByGoogleIdIgnoreDeleted(@Param("googleId") String googleId);
      List<Users> findAll();
     void insert(Users user);
     void update(Users user);

@@ -1,6 +1,8 @@
 package com.example.backendplantshop.dto.response;
 
 import com.example.backendplantshop.dto.response.user.UserDtoResponse;
+import com.example.backendplantshop.dto.response.DepositDtoResponse;
+import com.example.backendplantshop.dto.response.momo.CreatePaymentResponse;
 import com.example.backendplantshop.enums.OrderSatus;
 import com.example.backendplantshop.enums.ShippingStatus;
 import lombok.AllArgsConstructor;
@@ -33,5 +35,8 @@ public class OrderDtoResponse {
     private String shipping_address;
     private String shipping_phone;
     private List<OrderDetailDtoResponse> order_details;
+    private Boolean deposit_required;
+    private DepositDtoResponse deposit;
+    private CreatePaymentResponse deposit_payment;
 }
 

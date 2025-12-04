@@ -1,6 +1,7 @@
 package com.example.backendplantshop.service.intf;
 
 import com.example.backendplantshop.dto.request.StatisticsRequest;
+import com.example.backendplantshop.dto.response.ProductSalesResponse;
 import com.example.backendplantshop.dto.response.StatisticsResponse;
 import com.example.backendplantshop.dto.response.TopProductResponse;
 
@@ -23,18 +24,28 @@ public interface StatisticsService {
     StatisticsResponse getStatisticsByYear(int year);
     
     /**
-     * Lấy danh sách sản phẩm bán chạy theo ngày
+     * Lấy tổng số sản phẩm bán được theo tháng
      */
-    List<TopProductResponse> getTopProductsByDate(int year, int month, int day, int limit);
+    ProductSalesResponse getTotalProductsSoldByMonth(int year, int month);
     
     /**
-     * Lấy danh sách sản phẩm bán chạy theo tháng
+     * Lấy tổng số sản phẩm bán được theo năm
      */
-    List<TopProductResponse> getTopProductsByMonth(int year, int month, int limit);
+    ProductSalesResponse getTotalProductsSoldByYear(int year);
     
-    /**
-     * Lấy danh sách sản phẩm bán chạy theo năm
-     */
-    List<TopProductResponse> getTopProductsByYear(int year, int limit);
+//    /**
+//     * Lấy danh sách sản phẩm bán chạy theo ngày
+//     */
+//    List<TopProductResponse> getTopProductsByDate(int year, int month, int day, int limit);
+//
+//    /**
+//     * Lấy danh sách sản phẩm bán chạy theo tháng
+//     */
+//    List<TopProductResponse> getTopProductsByMonth(int year, int month, int limit);
+//
+//    /**
+//     * Lấy danh sách sản phẩm bán chạy theo năm
+//     */
+//    List<TopProductResponse> getTopProductsByYear(int year, int limit);
 }
 

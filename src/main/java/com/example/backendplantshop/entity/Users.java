@@ -22,7 +22,6 @@ public class Users {
     private String phone_number;
     private String address;
     private String role;
-    private String google_id;  // Lưu Google ID để link với Google account
     private LocalDateTime created_at;
     private LocalDateTime updated_at;
     private Boolean is_deleted;

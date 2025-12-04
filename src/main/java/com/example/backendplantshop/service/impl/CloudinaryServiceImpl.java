@@ -21,6 +21,7 @@ public class CloudinaryServiceImpl implements CloudinaryService {
     @Override
     public String uploadImage(MultipartFile image, String folder) {
         try {
+            //ObjectUtils.asMap là một hàm tiện ích (utility method) giúp chuyển các tham số rời rạc thành một Map, thay vì phải put từng cái vào
             Map<String, Object> params = ObjectUtils.asMap(
                     "folder", folder,
                     "resource_type", "image",

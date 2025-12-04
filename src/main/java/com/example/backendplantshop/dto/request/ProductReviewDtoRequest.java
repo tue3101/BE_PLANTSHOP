@@ -16,6 +16,9 @@ public class ProductReviewDtoRequest {
     @NotNull(message = "Sản phẩm không được để trống")
     private Integer product_id;
     
+    @NotNull(message = "Chi tiết đơn hàng không được để trống")
+    private Integer order_detail_id;
+
     @NotNull(message = "Đánh giá không được để trống")
     @Min(value = 1, message = "Đánh giá phải từ 1 đến 5 sao")
     @Max(value = 5, message = "Đánh giá phải từ 1 đến 5 sao")

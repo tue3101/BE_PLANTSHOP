@@ -508,65 +508,38 @@ public class AuthServiceImpl implements AuthenticationService {
                 throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
             }
             
-            String googleId = googleAuthService.getGoogleId(googleUserInfo);
             String email = googleAuthService.getEmail(googleUserInfo);
             String name = googleAuthService.getName(googleUserInfo);
             
-            log.info("Thông tin user từ Google: email={}, googleId={}, name={}", email, googleId, name);
+            log.info("Thông tin user từ Google: email={}, name={}", email, name);
 
-            if (email == null || email.trim().isEmpty() || googleId == null || googleId.trim().isEmpty()) {
-                log.error("Email hoặc GoogleId không hợp lệ: email={}, googleId={}", email, googleId);
+            if (email == null || email.trim().isEmpty()) {
+                log.error("Email không hợp lệ: email={}", email);
                 throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
             }
 
-            //Kiểm tra user đã tồn tại chưa
-            log.info("Bắt đầu kiểm tra user theo googleId (không quan tâm is_deleted): {}", googleId);
+            //Kiểm tra user đã tồn tại chưa (tìm theo email)
+            log.info("Bắt đầu kiểm tra user theo email (không quan tâm is_deleted): {}", email);
             Users existingUser = null;
             try {
-                existingUser = userMapper.findByGoogleIdIgnoreDeleted(googleId);
-                log.info("Kết quả findByGoogleIdIgnoreDeleted: {}", existingUser != null ? "found" : "not found");
+                existingUser = userMapper.findByEmailIgnoreDeleted(email);
+                log.info("Kết quả findByEmailIgnoreDeleted: {}", existingUser != null ? "found" : "not found");
             } catch (Exception e) {
-                log.error("Lỗi khi tìm user theo googleId (ignore deleted): {}", e.getMessage(), e);
-                // Tiếp tục tìm theo email thay vì throw exception ngay
-                existingUser = null;
-            }
-            
-            // Nếu không tìm thấy theo google_id, thử tìm theo email (không quan tâm is_deleted)
-            if (existingUser == null) {
-                log.info("Không tìm thấy user theo googleId, thử tìm theo email (không quan tâm is_deleted): {}", email);
-                try {
-                    existingUser = userMapper.findByEmailIgnoreDeleted(email);
-                    log.info("Kết quả findByEmailIgnoreDeleted: {}", existingUser != null ? "found" : "not found");
-                } catch (Exception e) {
-                    log.error("Lỗi khi tìm user theo email (ignore deleted): {}", e.getMessage(), e);
-                    throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
-                }
+                log.error("Lỗi khi tìm user theo email (ignore deleted): {}", e.getMessage(), e);
+                throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
             }
             
             // Kiểm tra nếu user đã tồn tại
             if (existingUser != null) {
                 // Kiểm tra xem user có bị xóa mềm không (is_deleted = 1)
                 if (existingUser.getIs_deleted() != null && existingUser.getIs_deleted()) {
-                    log.warn("User đã tồn tại nhưng bị vô hiệu hóa: email={}, google_id={}", email, googleId);
+                    log.warn("User đã tồn tại nhưng bị vô hiệu hóa: email={}", email);
                     throw new AppException(ErrorCode.ACCOUNT_DISABLED);
                 }
                 
                 // User tồn tại và chưa bị xóa, sử dụng user này
-                log.info("User đã tồn tại và chưa bị xóa: email={}, google_id={}", email, googleId);
+                log.info("User đã tồn tại và chưa bị xóa: email={}", email);
                 Users user = existingUser;
-                
-                // Nếu user có email nhưng chưa có google_id, cập nhật google_id
-                if (user.getGoogle_id() == null || user.getGoogle_id().trim().isEmpty()) {
-                    log.info("Cập nhật google_id cho user hiện có: {}", email);
-                    try {
-                        user.setGoogle_id(googleId);
-                        userMapper.update(user);
-                        log.info("Đã cập nhật google_id cho user: {}", email);
-                    } catch (Exception e) {
-                        log.error("Lỗi khi cập nhật google_id: {}", e.getMessage(), e);
-                        throw new AppException(ErrorCode.AUTHENTICATION_ERROR);
-                    }
-                }
                 
                 // Tạo JWT tokens
                 String jwtAccessToken = jwtUtil.generateAccessToken(user.getUser_id(), user.getRole());
@@ -592,7 +565,7 @@ public class AuthServiceImpl implements AuthenticationService {
             }
 
             // Bước 4: Nếu user chưa tồn tại, tạo mới
-            log.info("User chưa tồn tại, bắt đầu tạo user mới: email={}, google_id={}", email, googleId);
+            log.info("User chưa tồn tại, bắt đầu tạo user mới: email={}", email);
             
             // Tạo username từ name hoặc email nếu name không có
             String username = (name != null && !name.trim().isEmpty()) 
@@ -614,15 +587,14 @@ public class AuthServiceImpl implements AuthenticationService {
                     .email(email)
                     .password(randomPassword)
                     .username(username)
-                    .google_id(googleId)
                     .role("USER")
                     .is_deleted(false)
                     .build();
 
-            log.info("Bắt đầu insert user mới vào database: email={}, google_id={}", email, googleId);
+            log.info("Bắt đầu insert user mới vào database: email={}", email);
             try {
                 userMapper.insert(user);
-                log.info("Đã tạo user mới từ Google thành công: {} với google_id: {}", email, googleId);
+                log.info("Đã tạo user mới từ Google thành công: {}", email);
             } catch (Exception e) {
                 log.error("Lỗi khi insert user mới: {}", e.getMessage(), e);
                 log.error("SQL exception details: ", e);

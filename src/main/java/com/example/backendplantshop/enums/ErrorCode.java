@@ -70,6 +70,12 @@ public enum ErrorCode {
     QUANTITY_IS_NOT_ENOUGH(1004, "số lượng sản phẩm trong kho không đủ"),
     INVALID_QUANTITY(1004, "số lượng sản phẩm phải >=1"),
     INVALID_ORDER_STATUS_COMBINATION(1005, "Trạng thái không hợp lệ"),
+    ORDER_NOT_DELIVERED_FOR_REVIEW(1006, "Đơn hàng chưa giao thành công, chưa thể đánh giá"),
+    REVIEW_ALREADY_EXISTS(1007, "Chi tiết đơn hàng này đã được đánh giá"),
+    ORDER_DETAIL_PRODUCT_MISMATCH(1008, "Chi tiết đơn hàng không khớp với sản phẩm cần đánh giá"),
+    DEPOSIT_NOT_REQUIRED(1009, "Đơn hàng này không cần đặt cọc"),
+    DEPOSIT_ALREADY_PAID(1010, "Đơn hàng đã được đặt cọc"),
+    DEPOSIT_METHOD_NOT_FOUND(1011, "Không tìm thấy phương thức thanh toán đặt cọc"),
 
 
 //    ========================================================================

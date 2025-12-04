@@ -5,21 +5,22 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class ProductReview {
-    private int review_id;
-    private int rating;
-    private String comment;
-    private int product_id;
-    private int order_detail_id;
-    private int user_id;
-    private Boolean is_deleted;
+public class Deposit {
+    private int deposit_id;
+    private int order_id;
+    private int method_id;
+    private BigDecimal amount;
+    private Boolean paid;
+    private String momo_trans_id;
     private LocalDateTime created_at;
-    private LocalDateTime updated_at;
-
+    private LocalDateTime paid_at;
 }
+
+

@@ -1,6 +1,7 @@
 package com.example.backendplantshop.service.impl;
 
 import com.example.backendplantshop.dto.response.OrderStatisticsDtoResponse;
+import com.example.backendplantshop.dto.response.ProductSalesResponse;
 import com.example.backendplantshop.dto.response.StatisticsResponse;
 import com.example.backendplantshop.dto.response.TopProductResponse;
 import com.example.backendplantshop.enums.ErrorCode;
@@ -50,32 +51,64 @@ public class StatisticsServiceImpl implements StatisticsService {
     }
     
     @Override
-    public List<TopProductResponse> getTopProductsByDate(int year, int month, int day, int limit) {
-        validateDate(year, month, day);
-        validateLimit(limit);
-        
-        List<Map<String, Object>> results = orderDetailMapper.getTopProductsByDate(year, month, day, limit);
-        return convertToTopProductResponseList(results);
-    }
-    
-    @Override
-    public List<TopProductResponse> getTopProductsByMonth(int year, int month, int limit) {
+    public ProductSalesResponse getTotalProductsSoldByMonth(int year, int month) {
         validateMonth(year, month);
-        validateLimit(limit);
         
-        List<Map<String, Object>> results = orderDetailMapper.getTopProductsByMonth(year, month, limit);
-        return convertToTopProductResponseList(results);
+        Integer totalQuantity = orderDetailMapper.getTotalProductsSoldByMonth(year, month);
+        if (totalQuantity == null) {
+            totalQuantity = 0;
+        }
+        
+        return ProductSalesResponse.builder()
+                .totalQuantitySold(totalQuantity)
+                .year(year)
+                .month(month)
+                .build();
     }
     
     @Override
-    public List<TopProductResponse> getTopProductsByYear(int year, int limit) {
+    public ProductSalesResponse getTotalProductsSoldByYear(int year) {
         validateYear(year);
-        validateLimit(limit);
         
-        List<Map<String, Object>> results = orderDetailMapper.getTopProductsByYear(year, limit);
-        return convertToTopProductResponseList(results);
+        Integer totalQuantity = orderDetailMapper.getTotalProductsSoldByYear(year);
+        if (totalQuantity == null) {
+            totalQuantity = 0;
+        }
+        
+        return ProductSalesResponse.builder()
+                .totalQuantitySold(totalQuantity)
+                .year(year)
+                .month(null)
+                .build();
     }
     
+//    @Override
+//    public List<TopProductResponse> getTopProductsByDate(int year, int month, int day, int limit) {
+//        validateDate(year, month, day);
+//        validateLimit(limit);
+//
+//        List<Map<String, Object>> results = orderDetailMapper.getTopProductsByDate(year, month, day, limit);
+//        return convertToTopProductResponseList(results);
+//    }
+//
+//    @Override
+//    public List<TopProductResponse> getTopProductsByMonth(int year, int month, int limit) {
+//        validateMonth(year, month);
+//        validateLimit(limit);
+//
+//        List<Map<String, Object>> results = orderDetailMapper.getTopProductsByMonth(year, month, limit);
+//        return convertToTopProductResponseList(results);
+//    }
+//
+//    @Override
+//    public List<TopProductResponse> getTopProductsByYear(int year, int limit) {
+//        validateYear(year);
+//        validateLimit(limit);
+//
+//        List<Map<String, Object>> results = orderDetailMapper.getTopProductsByYear(year, limit);
+//        return convertToTopProductResponseList(results);
+//    }
+//
     private StatisticsResponse convertToStatisticsResponse(OrderStatisticsDtoResponse result) {
         if (result == null) {
             return StatisticsResponse.builder()

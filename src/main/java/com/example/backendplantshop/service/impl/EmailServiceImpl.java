@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class EmailServiceImpl implements EmailService {
+    //kết hợp với JavaMailSender để gửi email.
     private final JavaMailSender mailSender;
 
     @Value("${spring.mail.username}")
@@ -20,6 +21,7 @@ public class EmailServiceImpl implements EmailService {
     @Override
     public void sendOtpEmail(String toEmail, String otpCode) {
         try {
+            //khởi tạo một đối tượng SimpleMailMessage trong Spring, dùng để gửi email dạng text đơn giản.
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
             message.setTo(toEmail);

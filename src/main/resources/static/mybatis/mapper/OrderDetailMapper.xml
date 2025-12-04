@@ -75,6 +75,7 @@
         WHERE order_id = #{orderID}
     </update>
 
+<!--    đếm sản phẩm có đang trong đơn hàng nào ko-->
     <select id="countActiveOrderDetailsByProductId" resultType="int" parameterType="int">
         SELECT COUNT(1)
         FROM order_details
@@ -82,96 +83,135 @@
           AND is_deleted = 0
     </select>
 
+    <!-- Tổng số sản phẩm bán được theo tháng -->
+    <select id="getTotalProductsSoldByMonth" resultType="int">
+        SELECT COALESCE(SUM(od.quantity), 0) as totalQuantitySold
+        FROM order_details od
+        INNER JOIN orders o ON od.order_id = o.order_id
+        WHERE od.is_deleted = 0
+        AND o.is_deleted = 0
+        AND o.status = 'CONFIRMED'
+        AND o.shipping_status = 'DELIVERED'
+        AND EXISTS (
+            SELECT 1 
+            FROM payment pay 
+            WHERE pay.order_id = o.order_id 
+            AND pay.is_deleted = 0 
+            AND pay.status = 'SUCCESS'
+        )
+        AND YEAR(o.order_date) = #{year}
+        AND MONTH(o.order_date) = #{month}
+    </select>
+
+    <!-- Tổng số sản phẩm bán được theo năm -->
+    <select id="getTotalProductsSoldByYear" resultType="int">
+        SELECT COALESCE(SUM(od.quantity), 0) as totalQuantitySold
+        FROM order_details od
+        INNER JOIN orders o ON od.order_id = o.order_id
+        WHERE od.is_deleted = 0
+        AND o.is_deleted = 0
+        AND o.status = 'CONFIRMED'
+        AND o.shipping_status = 'DELIVERED'
+        AND EXISTS (
+            SELECT 1 
+            FROM payment pay 
+            WHERE pay.order_id = o.order_id 
+            AND pay.is_deleted = 0 
+            AND pay.status = 'SUCCESS'
+        )
+        AND YEAR(o.order_date) = #{year}
+    </select>
+
     <!-- Top products by date -->
 <!--    distinct loại bỏ các giá trị trùng lặp-->
 <!--    INNER JOIN chỉ trả về những dòng cả 2 bảng khớp-->
-    <select id="getTopProductsByDate" resultType="map">
-        SELECT 
-            od.product_id,
-            p.product_name,
-            p.img_url,
-            SUM(od.quantity) as totalQuantitySold,
-            SUM(od.sub_total) as totalRevenue,
-            COUNT(DISTINCT od.order_id) as orderCount
-        FROM order_details od
-        INNER JOIN orders o ON od.order_id = o.order_id
-        INNER JOIN products p ON od.product_id = p.product_id
-        WHERE od.is_deleted = 0
-        AND o.is_deleted = 0
-        AND o.status = 'CONFIRMED'
-        AND o.shipping_status = 'DELIVERED'
-        AND EXISTS (
-            SELECT 1 
-            FROM payment pay 
-            WHERE pay.order_id = o.order_id 
-            AND pay.is_deleted = 0 
-            AND pay.status = 'SUCCESS'
-        )
-        AND YEAR(o.order_date) = #{year}
-        AND MONTH(o.order_date) = #{month}
-        AND DAY(o.order_date) = #{day}
-        GROUP BY od.product_id, p.product_name, p.img_url
-        ORDER BY totalQuantitySold DESC
-        LIMIT #{limit}
-    </select>
+<!--    <select id="getTopProductsByDate" resultType="map">-->
+<!--        SELECT -->
+<!--            od.product_id,-->
+<!--            p.product_name,-->
+<!--            p.img_url,-->
+<!--            SUM(od.quantity) as totalQuantitySold,-->
+<!--            SUM(od.sub_total) as totalRevenue,-->
+<!--            COUNT(DISTINCT od.order_id) as orderCount-->
+<!--        FROM order_details od-->
+<!--        INNER JOIN orders o ON od.order_id = o.order_id-->
+<!--        INNER JOIN products p ON od.product_id = p.product_id-->
+<!--        WHERE od.is_deleted = 0-->
+<!--        AND o.is_deleted = 0-->
+<!--        AND o.status = 'CONFIRMED'-->
+<!--        AND o.shipping_status = 'DELIVERED'-->
+<!--        AND EXISTS (-->
+<!--            SELECT 1 -->
+<!--            FROM payment pay -->
+<!--            WHERE pay.order_id = o.order_id -->
+<!--            AND pay.is_deleted = 0 -->
+<!--            AND pay.status = 'SUCCESS'-->
+<!--        )-->
+<!--        AND YEAR(o.order_date) = #{year}-->
+<!--        AND MONTH(o.order_date) = #{month}-->
+<!--        AND DAY(o.order_date) = #{day}-->
+<!--        GROUP BY od.product_id, p.product_name, p.img_url-->
+<!--        ORDER BY totalQuantitySold DESC-->
+<!--        LIMIT #{limit}-->
+<!--    </select>-->
 
-    <!-- Top products by month -->
-    <select id="getTopProductsByMonth" resultType="map">
-        SELECT 
-            od.product_id,
-            p.product_name,
-            p.img_url,
-            SUM(od.quantity) as totalQuantitySold,
-            SUM(od.sub_total) as totalRevenue,
-            COUNT(DISTINCT od.order_id) as orderCount
-        FROM order_details od
-        INNER JOIN orders o ON od.order_id = o.order_id
-        INNER JOIN products p ON od.product_id = p.product_id
-        WHERE od.is_deleted = 0
-        AND o.is_deleted = 0
-        AND o.status = 'CONFIRMED'
-        AND o.shipping_status = 'DELIVERED'
-        AND EXISTS (
-            SELECT 1 
-            FROM payment pay 
-            WHERE pay.order_id = o.order_id 
-            AND pay.is_deleted = 0 
-            AND pay.status = 'SUCCESS'
-        )
-        AND YEAR(o.order_date) = #{year}
-        AND MONTH(o.order_date) = #{month}
-        GROUP BY od.product_id, p.product_name, p.img_url
-        ORDER BY totalQuantitySold DESC
-        LIMIT #{limit}
-    </select>
+<!--    &lt;!&ndash; Top products by month &ndash;&gt;-->
+<!--    <select id="getTopProductsByMonth" resultType="map">-->
+<!--        SELECT -->
+<!--            od.product_id,-->
+<!--            p.product_name,-->
+<!--            p.img_url,-->
+<!--            SUM(od.quantity) as totalQuantitySold,-->
+<!--            SUM(od.sub_total) as totalRevenue,-->
+<!--            COUNT(DISTINCT od.order_id) as orderCount-->
+<!--        FROM order_details od-->
+<!--        INNER JOIN orders o ON od.order_id = o.order_id-->
+<!--        INNER JOIN products p ON od.product_id = p.product_id-->
+<!--        WHERE od.is_deleted = 0-->
+<!--        AND o.is_deleted = 0-->
+<!--        AND o.status = 'CONFIRMED'-->
+<!--        AND o.shipping_status = 'DELIVERED'-->
+<!--        AND EXISTS (-->
+<!--            SELECT 1 -->
+<!--            FROM payment pay -->
+<!--            WHERE pay.order_id = o.order_id -->
+<!--            AND pay.is_deleted = 0 -->
+<!--            AND pay.status = 'SUCCESS'-->
+<!--        )-->
+<!--        AND YEAR(o.order_date) = #{year}-->
+<!--        AND MONTH(o.order_date) = #{month}-->
+<!--        GROUP BY od.product_id, p.product_name, p.img_url-->
+<!--        ORDER BY totalQuantitySold DESC-->
+<!--        LIMIT #{limit}-->
+<!--    </select>-->
 
-    <!-- Top products by year -->
-    <select id="getTopProductsByYear" resultType="map">
-        SELECT 
-            od.product_id,
-            p.product_name,
-            p.img_url,
-            SUM(od.quantity) as totalQuantitySold,
-            SUM(od.sub_total) as totalRevenue,
-            COUNT(DISTINCT od.order_id) as orderCount
-        FROM order_details od
-        INNER JOIN orders o ON od.order_id = o.order_id
-        INNER JOIN products p ON od.product_id = p.product_id
-        WHERE od.is_deleted = 0
-        AND o.is_deleted = 0
-        AND o.status = 'CONFIRMED'
-        AND o.shipping_status = 'DELIVERED'
-        AND EXISTS (
-            SELECT 1 
-            FROM payment pay 
-            WHERE pay.order_id = o.order_id 
-            AND pay.is_deleted = 0 
-            AND pay.status = 'SUCCESS'
-        )
-        AND YEAR(o.order_date) = #{year}
-        GROUP BY od.product_id, p.product_name, p.img_url
-        ORDER BY totalQuantitySold DESC
-        LIMIT #{limit}
-    </select>
+<!--    &lt;!&ndash; Top products by year &ndash;&gt;-->
+<!--    <select id="getTopProductsByYear" resultType="map">-->
+<!--        SELECT -->
+<!--            od.product_id,-->
+<!--            p.product_name,-->
+<!--            p.img_url,-->
+<!--            SUM(od.quantity) as totalQuantitySold,-->
+<!--            SUM(od.sub_total) as totalRevenue,-->
+<!--            COUNT(DISTINCT od.order_id) as orderCount-->
+<!--        FROM order_details od-->
+<!--        INNER JOIN orders o ON od.order_id = o.order_id-->
+<!--        INNER JOIN products p ON od.product_id = p.product_id-->
+<!--        WHERE od.is_deleted = 0-->
+<!--        AND o.is_deleted = 0-->
+<!--        AND o.status = 'CONFIRMED'-->
+<!--        AND o.shipping_status = 'DELIVERED'-->
+<!--        AND EXISTS (-->
+<!--            SELECT 1 -->
+<!--            FROM payment pay -->
+<!--            WHERE pay.order_id = o.order_id -->
+<!--            AND pay.is_deleted = 0 -->
+<!--            AND pay.status = 'SUCCESS'-->
+<!--        )-->
+<!--        AND YEAR(o.order_date) = #{year}-->
+<!--        GROUP BY od.product_id, p.product_name, p.img_url-->
+<!--        ORDER BY totalQuantitySold DESC-->
+<!--        LIMIT #{limit}-->
+<!--    </select>-->
 </mapper>
 

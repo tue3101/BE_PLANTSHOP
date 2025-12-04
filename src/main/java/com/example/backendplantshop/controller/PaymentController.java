@@ -7,8 +7,7 @@ import com.example.backendplantshop.dto.response.ApiResponse;
 import com.example.backendplantshop.dto.response.PaymentDtoResponse;
 import com.example.backendplantshop.dto.response.momo.CreatePaymentResponse;
 import com.example.backendplantshop.enums.ErrorCode;
-import com.example.backendplantshop.enums.OrderSatus;
-import com.example.backendplantshop.enums.PaymentStatus;
+import com.example.backendplantshop.enums.MoMoPaymentPurpose;
 import com.example.backendplantshop.config.MoMoConfig;
 import com.example.backendplantshop.service.intf.MoMoService;
 import com.example.backendplantshop.service.intf.OrderService;
@@ -46,13 +45,12 @@ public class PaymentController {
         if (!authService.isUser(role) && !authService.isAdmin(role)) {
             throw new com.example.backendplantshop.exception.AppException(ErrorCode.ACCESS_DENIED);
         }
-        
-        PaymentDtoResponse payment = paymentService.createPayment(request, orderId);
+
         return ApiResponse.<PaymentDtoResponse>builder()
                 .statusCode(ErrorCode.ADD_SUCCESSFULL.getCode())
                 .success(Boolean.TRUE)
                 .message(ErrorCode.ADD_SUCCESSFULL.getMessage())
-                .data(payment)
+                .data(paymentService.createPayment(request, orderId))
                 .build();
     }
     
@@ -167,33 +165,17 @@ public class PaymentController {
                 return ResponseEntity.badRequest().body("{\"status\":\"invalid_signature\"}");
             }
             
-            Integer orderId = extractOrderId(callbackRequest.getOrderId());
+            Integer orderId = paymentService.extractOrderIdFromMoMoOrderId(callbackRequest.getOrderId());
             if (orderId == null) {
                 log.error("Không thể parse orderId từ giá trị: {}", callbackRequest.getOrderId());
             }
-            
+            MoMoPaymentPurpose purpose = MoMoPaymentPurpose.fromExtraData(callbackRequest.getExtraData());
+
             // Xử lý kết quả thanh toán
-            if (callbackRequest.getResultCode() != null && callbackRequest.getResultCode() == 0) {
-                // Thanh toán thành công
-                try {
-                    if (orderId != null) {
-                        paymentService.updatePaymentsByOrderId(orderId, PaymentStatus.SUCCESS);
-                        com.example.backendplantshop.dto.request.UpdateOrderStatusDtoRequest statusRequest = 
-                                com.example.backendplantshop.dto.request.UpdateOrderStatusDtoRequest.builder()
-                                        .status(OrderSatus.CONFIRMED)
-                                        .build();
-                        orderService.updateOrderStatus(orderId, statusRequest);
-                        log.info("Đã cập nhật trạng thái đơn hàng {} thành công sau khi thanh toán", orderId);
-                    }
-                } catch (Exception e) {
-                    log.error("Lỗi khi cập nhật trạng thái đơn hàng từ callback: {}", e.getMessage(), e);
-                }
+            if (purpose == MoMoPaymentPurpose.DEPOSIT) {
+                paymentService.handleDepositCallback(orderId, callbackRequest);
             } else {
-                log.warn("Thanh toán thất bại: orderId={}, message={}", 
-                        callbackRequest.getOrderId(), callbackRequest.getMessage());
-                if (orderId != null) {
-                    paymentService.updatePaymentsByOrderId(orderId, PaymentStatus.FAILED);
-                }
+                orderService.handleOrderPaymentCallback(orderId, callbackRequest);
             }
             
             // Trả về response cho MoMo
@@ -223,7 +205,7 @@ public class PaymentController {
         
         // Redirect về trang chủ frontend với thông tin kết quả thanh toán trong query params
         // Frontend có thể đọc query params và hiển thị thông báo tương ứng
-        String redirectUrl = String.format("http://localhost:3000/?paymentResult=true&orderId=%s&resultCode=%s&message=%s",
+        String redirectUrl = String.format("http://localhost:3000/orders-page/?paymentResult=true&orderId=%s&resultCode=%s&message=%s",
                 encodedOrderId,
                 encodedResultCode,
                 encodedMessage);
@@ -231,23 +213,5 @@ public class PaymentController {
         return ResponseEntity.status(302)
                 .header("Location", redirectUrl)
                 .build();
-    }
-    
-    private Integer extractOrderId(String momoOrderId) {
-        if (momoOrderId == null || momoOrderId.isBlank()) {
-            return null;
-        }
-        try {
-            if (momoOrderId.startsWith("ORDER_")) {
-                String[] parts = momoOrderId.split("_");
-                if (parts.length >= 2) {
-                    return Integer.parseInt(parts[1]);
-                }
-            }
-            return Integer.parseInt(momoOrderId);
-        } catch (NumberFormatException ex) {
-            log.error("Không thể parse orderId từ {}: {}", momoOrderId, ex.getMessage());
-            return null;
-        }
     }
 }

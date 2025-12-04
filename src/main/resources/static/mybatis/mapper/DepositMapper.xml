@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.backendplantshop.mapper.DepositMapper">
+    <resultMap id="DepositResultMap" type="com.example.backendplantshop.entity.Deposit">
+        <id column="deposit_id" property="deposit_id"/>
+        <result column="order_id" property="order_id"/>
+        <result column="method_id" property="method_id"/>
+        <result column="amount" property="amount"/>
+        <result column="paid" property="paid"/>
+        <result column="momo_trans_id" property="momo_trans_id"/>
+        <result column="created_at" property="created_at"/>
+        <result column="paid_at" property="paid_at"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="Deposit" useGeneratedKeys="true" keyProperty="deposit_id">
+        INSERT INTO deposit (
+            order_id,
+            method_id,
+            amount,
+            paid,
+            momo_trans_id,
+            created_at,
+            paid_at
+        )
+        VALUES (
+            #{order_id},
+            #{method_id},
+            #{amount},
+            #{paid},
+            #{momo_trans_id},
+            #{created_at},
+            #{paid_at}
+        )
+    </insert>
+
+    <select id="findById" parameterType="int" resultMap="DepositResultMap">
+        SELECT *
+        FROM deposit
+        WHERE deposit_id = #{depositID}
+    </select>
+
+    <select id="findLatestByOrderId" parameterType="int" resultMap="DepositResultMap">
+        SELECT *
+        FROM deposit
+        WHERE order_id = #{orderID}
+        ORDER BY (paid_at IS NULL), paid_at DESC, deposit_id DESC
+        LIMIT 1
+    </select>
+
+    <select id="findByMomoTransId" parameterType="string" resultMap="DepositResultMap">
+        SELECT *
+        FROM deposit
+        WHERE momo_trans_id = #{transID}
+        LIMIT 1
+    </select>
+
+    <update id="update" parameterType="com.example.backendplantshop.entity.Deposit">
+        UPDATE deposit
+        SET order_id = #{order_id},
+            method_id = #{method_id},
+            amount = #{amount},
+            paid = #{paid},
+            momo_trans_id = #{momo_trans_id},
+            paid_at = #{paid_at}
+        WHERE deposit_id = #{deposit_id}
+    </update>
+</mapper>
+
+

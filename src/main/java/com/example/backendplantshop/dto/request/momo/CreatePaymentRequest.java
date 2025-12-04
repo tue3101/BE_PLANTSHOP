@@ -1,5 +1,6 @@
 package com.example.backendplantshop.dto.request.momo;
 
+import com.example.backendplantshop.enums.MoMoPaymentPurpose;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
@@ -22,5 +23,7 @@ public class CreatePaymentRequest {
     private BigDecimal amount;
     
     private String orderInfo;
+
+    private MoMoPaymentPurpose purpose;
 }
 

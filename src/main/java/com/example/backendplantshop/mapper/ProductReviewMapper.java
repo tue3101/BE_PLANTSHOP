@@ -16,7 +16,7 @@ public interface ProductReviewMapper {
 
     List<ProductReview> findByUserId(@Param("userID") int userId);
 
-    List<ProductReview> findByProductIdAndUserId(@Param("productID") int productId, @Param("userID") int userId);
+    ProductReview findByOrderDetailId(@Param("orderDetailID") int orderDetailId);
 
     void update(ProductReview review);
 

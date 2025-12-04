@@ -9,6 +9,7 @@
         <result column="rating" property="rating"/>
         <result column="comment" property="comment"/>
         <result column="product_id" property="product_id"/>
+        <result column="order_detail_id" property="order_detail_id"/>
         <result column="user_id" property="user_id"/>
         <result column="is_deleted" property="is_deleted"/>
         <result column="created_at" property="created_at"/>
@@ -19,6 +20,7 @@
         INSERT INTO product_review (rating,
                                     comment,
                                     product_id,
+                                    order_detail_id,
                                     user_id,
                                     is_deleted,
                                     created_at,
@@ -26,6 +28,7 @@
         VALUES (#{rating},
                 #{comment},
                 #{product_id},
+                #{order_detail_id},
                 #{user_id},
                 #{is_deleted},
                 #{created_at},
@@ -57,14 +60,11 @@
         ORDER BY created_at DESC
     </select>
 
-<!--     kiểm tra sp đã từng được user review chưa-->
-    <select id="findByProductIdAndUserId" resultMap="ProductReviewResultMap">
+    <select id="findByOrderDetailId" resultMap="ProductReviewResultMap" parameterType="integer">
         SELECT *
         FROM product_review
-        WHERE product_id = #{productID}
-          AND user_id = #{userID}
+        WHERE order_detail_id = #{orderDetailID}
           AND is_deleted = 0
-        ORDER BY created_at DESC
     </select>
 
 <!--    sửa review-->

@@ -6,6 +6,7 @@ import com.example.backendplantshop.dto.request.momo.MoMoPaymentRequest;
 import com.example.backendplantshop.dto.response.momo.CreatePaymentResponse;
 import com.example.backendplantshop.dto.response.momo.MoMoPaymentResponse;
 import com.example.backendplantshop.enums.ErrorCode;
+import com.example.backendplantshop.enums.MoMoPaymentPurpose;
 import com.example.backendplantshop.exception.AppException;
 import com.example.backendplantshop.service.intf.MoMoService;
 import com.example.backendplantshop.util.MoMoUtil;
@@ -55,7 +56,9 @@ public class MoMoServiceImpl implements MoMoService {
             // Lý do: MoMo yêu cầu orderId phải duy nhất trong hệ thống của họ
             // Nếu user tạo payment nhiều lần cho cùng một order, mỗi lần sẽ có orderId khác nhau
             long timestamp = System.currentTimeMillis();
-            String momoOrderId = String.format("ORDER_%d_%d", request.getOrderId(), timestamp);
+            MoMoPaymentPurpose purpose = request.getPurpose() != null ? request.getPurpose() : MoMoPaymentPurpose.ORDER_PAYMENT;
+            String orderPrefix = purpose == MoMoPaymentPurpose.DEPOSIT ? "DEPOSIT" : "ORDER";
+            String momoOrderId = String.format("%s_%d_%d", orderPrefix, request.getOrderId(), timestamp);
             
             log.info("Tạo MoMo orderId: {} từ orderId DB: {}", momoOrderId, request.getOrderId());
             
@@ -66,9 +69,9 @@ public class MoMoServiceImpl implements MoMoService {
             if (orderInfo == null || orderInfo.isEmpty()) {
                 orderInfo = "Thanh toán đơn hàng #" + request.getOrderId();
             }
-            
+
             // Tạo extraData (có thể để trống hoặc JSON string)
-            String extraData = "";
+            String extraData = "purpose=" + purpose.name();
             
             // Tạo raw hash (sử dụng momoOrderId cho MoMo API)
             String rawHash = MoMoUtil.createRawHash(
@@ -127,8 +130,8 @@ public class MoMoServiceImpl implements MoMoService {
             HttpEntity<MoMoPaymentRequest> entity = new HttpEntity<>(momoRequest, headers);
             
             String apiEndpoint = momoConfig.getApiEndpoint();
-            log.info("Gọi MoMo API với requestId: {}, momoOrderId: {}, orderId DB: {}, amount: {}", 
-                    requestId, momoOrderId, request.getOrderId(), amount);
+            log.info("Gọi MoMo API với requestId: {}, momoOrderId: {}, orderId DB: {}, amount: {}, purpose: {}",
+                    requestId, momoOrderId, request.getOrderId(), amount, purpose);
             
             // Validate endpoint URL
             if (apiEndpoint == null || apiEndpoint.trim().isEmpty()) {

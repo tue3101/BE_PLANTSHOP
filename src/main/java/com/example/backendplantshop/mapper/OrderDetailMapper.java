@@ -18,10 +18,14 @@ public interface OrderDetailMapper {
     void deleteByOrderId(@Param("orderID") int orderId);
     
     // Statistics methods - Top products
-    List<Map<String, Object>> getTopProductsByDate(@Param("year") int year, @Param("month") int month, @Param("day") int day, @Param("limit") int limit);
-    List<Map<String, Object>> getTopProductsByMonth(@Param("year") int year, @Param("month") int month, @Param("limit") int limit);
-    List<Map<String, Object>> getTopProductsByYear(@Param("year") int year, @Param("limit") int limit);
+//    List<Map<String, Object>> getTopProductsByDate(@Param("year") int year, @Param("month") int month, @Param("day") int day, @Param("limit") int limit);
+//    List<Map<String, Object>> getTopProductsByMonth(@Param("year") int year, @Param("month") int month, @Param("limit") int limit);
+//    List<Map<String, Object>> getTopProductsByYear(@Param("year") int year, @Param("limit") int limit);
 
     int countActiveOrderDetailsByProductId(@Param("productID") int productId);
+    
+    // Statistics methods - Total products sold
+    Integer getTotalProductsSoldByMonth(@Param("year") int year, @Param("month") int month);
+    Integer getTotalProductsSoldByYear(@Param("year") int year);
 }
 

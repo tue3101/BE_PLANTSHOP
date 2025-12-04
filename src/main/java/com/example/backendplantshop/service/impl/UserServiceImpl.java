@@ -15,9 +15,10 @@ import com.example.backendplantshop.service.intf.UserService;
 import com.example.backendplantshop.service.intf.UserTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
-
+import java.sql.SQLException;
 import java.util.List;
 
 @Slf4j
@@ -34,7 +35,9 @@ public class UserServiceImpl implements UserService {
 
 
     private String clean(String input) {
-        return input != null  ? input : null;
+        if (input == null) return null;
+        input = input.trim();
+        return input.isEmpty() ? null : input;
     }
 
 
@@ -81,7 +84,6 @@ public LoginDtoResponse update(int id, UserDtoRequest userDtoRequest) {
     userDtoRequest.setAddress(clean(userDtoRequest.getAddress()));
 
     // Kiểm tra: Nếu request có trường role (không null và không rỗng), chỉ admin mới được gửi
-    // Điều này ngăn user thường cố gắng thay đổi role của mình hoặc người khác
     if (userDtoRequest.getRole() != null && !userDtoRequest.getRole().trim().isEmpty()) {
         if (!authService.isAdmin(role)) {
             throw new AppException(ErrorCode.ACCESS_DENIED);
@@ -113,7 +115,23 @@ public LoginDtoResponse update(int id, UserDtoRequest userDtoRequest) {
     }
     
     
-    userMapper.update(UserConvert.toUpdatedUser(id, userDtoRequest, existingUser));
+    try {
+        userMapper.update(UserConvert.toUpdatedUser(id, userDtoRequest, existingUser));
+    } catch (DataIntegrityViolationException e) {
+        // Bắt lỗi duplicate từ database constraint (race condition hoặc kiểm tra bị bỏ sót)
+        Throwable rootCause = e.getRootCause();
+        if (rootCause instanceof SQLException) {
+            SQLException sqlException = (SQLException) rootCause;
+            String errorMessage = sqlException.getMessage();
+            // Kiểm tra nếu là lỗi duplicate key trên username
+            if (errorMessage != null && (errorMessage.toLowerCase().contains("username") 
+                    || errorMessage.toLowerCase().contains("duplicate") 
+                    || errorMessage.toLowerCase().contains("unique"))) {
+                throw new AppException(ErrorCode.USERNAME_ALREADY_EXISTS);
+            }
+        }
+        throw e;
+    }
 
     if (roleChanged) {
         userTokenService.revokeTokensByUser(id);
@@ -133,7 +151,6 @@ public LoginDtoResponse update(int id, UserDtoRequest userDtoRequest) {
         // Kiểm tra user có đơn hàng chưa giao thành công không
         boolean hasPendingOrders = checkUserHasPendingOrders(id);
         if (hasPendingOrders) {
-            log.warn("User đang có đơn hàng chưa giao thành công, không thể xóa: user_id={}", id);
             throw new AppException(ErrorCode.USER_HAS_PENDING_ORDERS);
         }
         
@@ -141,7 +158,6 @@ public LoginDtoResponse update(int id, UserDtoRequest userDtoRequest) {
         cartMapper.deleteByUserId(id);
         userTokenMapper.revokeTokensByUser(id);
         userMapper.delete(id);
-        log.info("Đã xóa user: user_id={}", id);
     }
 
 

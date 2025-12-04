@@ -2,6 +2,7 @@ package com.example.backendplantshop.service.impl;
 
 import com.example.backendplantshop.convert.PaymentConvert;
 import com.example.backendplantshop.dto.request.PaymentDtoRequest;
+import com.example.backendplantshop.dto.request.momo.MoMoCallbackRequest;
 import com.example.backendplantshop.dto.response.PaymentDtoResponse;
 import com.example.backendplantshop.dto.response.PaymentMethodDtoResponse;
 import com.example.backendplantshop.entity.Orders;
@@ -15,6 +16,7 @@ import com.example.backendplantshop.exception.AppException;
 import com.example.backendplantshop.mapper.OrderMapper;
 import com.example.backendplantshop.mapper.PaymentMapper;
 import com.example.backendplantshop.mapper.PaymentMethodMapper;
+import com.example.backendplantshop.service.intf.DepositService;
 import com.example.backendplantshop.service.intf.PaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +36,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentMapper paymentMapper;
     private final PaymentMethodMapper paymentMethodMapper;
     private final OrderMapper orderMapper;
+    private final DepositService depositService;
     
     @Override
     @Transactional
@@ -45,6 +48,8 @@ public class PaymentServiceImpl implements PaymentService {
         }
         
         // Validate amount
+        //compareTo: so sánh 2 giá trị
+        //amount ko được nhỏ hơn hoặc bằng 0
         if (request.getAmount() == null || request.getAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
         }
@@ -70,7 +75,8 @@ public class PaymentServiceImpl implements PaymentService {
         PaymentMethod paymentMethod = paymentMethodMapper.findById(payment.getMethod_id());
         return PaymentConvert.convertPaymentToPaymentDtoResponse(payment, paymentMethod);
     }
-    
+
+    //lấy giao dịch bằng mã đơn để hiển thi thong tin giao dịch ở lịch su don và danh sach don hàng
     @Override
     public List<PaymentDtoResponse> getPaymentsByOrderId(int orderId) {
         List<Payment> payments = paymentMapper.findByOrderId(orderId);
@@ -81,7 +87,9 @@ public class PaymentServiceImpl implements PaymentService {
                 })
                 .collect(Collectors.toList());
     }
-    
+
+
+    //lấy tất cả giao dịch cho admin
     @Override
     public List<PaymentDtoResponse> getAllPayments() {
         List<Payment> payments = paymentMapper.getAll();
@@ -92,7 +100,8 @@ public class PaymentServiceImpl implements PaymentService {
                 })
                 .collect(Collectors.toList());
     }
-    
+
+    //lấy tất cả pthuc thanh toán
     @Override
     public List<PaymentMethodDtoResponse> getAllPaymentMethods() {
         List<PaymentMethod> paymentMethods = paymentMethodMapper.getAll();
@@ -102,21 +111,22 @@ public class PaymentServiceImpl implements PaymentService {
     }
     
 
+
+    //các trường hợp trạng thái ko hợp lệ
     private void validateOrderStatusLogic(OrderSatus orderStatus, ShippingStatus shippingStatus, PaymentStatus paymentStatus) {
         // 1. PENDING_CONFIRMATION + SHIPPING/DELIVERED → Không hợp lý
         if (orderStatus == OrderSatus.PENDING_CONFIRMATION) {
-            if (shippingStatus == ShippingStatus.SHIPPING || shippingStatus == ShippingStatus.DELIVERED) {
+            if (shippingStatus == ShippingStatus.SHIPPING || shippingStatus == ShippingStatus.DELIVERED||shippingStatus ==  ShippingStatus.PREPARING_ORDER) {
                 throw new AppException(ErrorCode.INVALID_ORDER_STATUS_COMBINATION);
             }
         }
 
         // 2. PENDING_CONFIRMATION + PREPARING_ORDER → Không hợp lý
-        if (orderStatus == OrderSatus.PENDING_CONFIRMATION && shippingStatus == ShippingStatus.PREPARING_ORDER) {
-            throw new AppException(ErrorCode.INVALID_ORDER_STATUS_COMBINATION);
-        }
+//        if (orderStatus == OrderSatus.PENDING_CONFIRMATION && shippingStatus == ShippingStatus.PREPARING_ORDER) {
+//            throw new AppException(ErrorCode.INVALID_ORDER_STATUS_COMBINATION);
+//        }
 
         // 3. PENDING_CONFIRMATION + payment SUCCESS → Không hợp lý (đơn chưa xác nhận thì không thể thanh toán thành công)
-        // Lưu ý: Nếu payment thành công, order status nên được tự động cập nhật thành CONFIRMED
         if (orderStatus == OrderSatus.PENDING_CONFIRMATION && paymentStatus == PaymentStatus.SUCCESS) {
             throw new AppException(ErrorCode.INVALID_ORDER_STATUS_COMBINATION);
         }
@@ -192,10 +202,13 @@ public class PaymentServiceImpl implements PaymentService {
         PaymentMethod paymentMethod = paymentMethodMapper.findById(payment.getMethod_id());
         return PaymentConvert.convertPaymentToPaymentDtoResponse(payment, paymentMethod);
     }
-    
+
+
+    //hàm dùng để  update status khi thanh toán ko thành công/thah công
     @Override
     //đảm bảo commit trạng thái của giao dịch của đơn hàng dù cho trạng thais đơn bị lỗi
     //requires_new nó sẽ tách ra  một transaction mới chạy riêng biệt với transaction của order
+    //propagation = Propagation.REQUIRES_NEW → luôn tạo một transaction mới, bất kể có transaction hiện tại hay không.
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void updatePaymentsByOrderId(int orderId, PaymentStatus status) {
         List<Payment> payments = paymentMapper.findByOrderId(orderId);
@@ -212,6 +225,46 @@ public class PaymentServiceImpl implements PaymentService {
             paymentMapper.update(payment);
             log.info("Đã cập nhật payment ID: {} của order ID: {} thành status: {}", 
                     payment.getPayment_id(), orderId, status);
+        }
+    }
+    
+    @Override
+    public Integer extractOrderIdFromMoMoOrderId(String momoOrderId) {
+        if (momoOrderId == null || momoOrderId.isBlank()) {
+            return null;
+        }
+        try {
+            String normalized = momoOrderId.trim();
+            if (normalized.startsWith("ORDER_") || normalized.startsWith("DEPOSIT_")) {
+                String[] parts = normalized.split("_");
+                if (parts.length >= 2) {
+                    return Integer.parseInt(parts[1]);
+                }
+            }
+            return Integer.parseInt(normalized);
+        } catch (NumberFormatException ex) {
+            log.error("Không thể parse orderId từ {}: {}", momoOrderId, ex.getMessage());
+            return null;
+        }
+    }
+
+
+    //hàm đánh dấu đơn hàng đã được đặt cọc hay chưa
+    @Override
+    @Transactional
+    public void handleDepositCallback(Integer orderId, MoMoCallbackRequest callbackRequest) {
+        if (orderId == null) {
+            log.warn("Không xác định được orderId cho giao dịch đặt cọc");
+            return;
+        }
+        if (callbackRequest.getResultCode() != null && callbackRequest.getResultCode() == 0) {
+            // Thanh toán thành công: cập nhật deposit record thành paid = 1
+            depositService.handleDepositSuccess(orderId, callbackRequest.getAmount(), callbackRequest.getTransId());
+        } else {
+            // Thanh toán thất bại: deposit record đã được tạo với paid = 0 khi tạo payment request
+            // Không cần làm gì thêm, deposit record đã tồn tại với paid = 0
+            log.warn("Đặt cọc thất bại cho order {}: {}. Deposit record vẫn tồn tại với paid = 0", 
+                    orderId, callbackRequest.getMessage());
         }
     }
 }

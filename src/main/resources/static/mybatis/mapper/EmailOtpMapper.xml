@@ -44,6 +44,17 @@
         LIMIT 1
     </select>
 
+    <!--    tìm otp mới nhất của mail để kiểm tra otp xác nhận cho đk hoặc quên mk-->
+<!--    <select id="findByEmailAndOtpForMark" resultMap="EmailOtpResultMap">-->
+<!--        SELECT *-->
+<!--        FROM user_otp-->
+<!--        WHERE email = #{email}-->
+<!--          AND otp_code = #{otpCode}-->
+<!--          AND is_deleted = 0-->
+<!--          AND expires_at &gt; CURRENT_TIMESTAMP-->
+<!--        ORDER BY created_at DESC-->
+<!--            LIMIT 1-->
+<!--    </select>-->
 <!--    <select id="findLatestByEmail" resultMap="EmailOtpResultMap">-->
 <!--        SELECT *-->
 <!--        FROM user_otp-->
@@ -53,6 +64,7 @@
 <!--        LIMIT 1-->
 <!--    </select>-->
 
+<!--    đánh dấu đã sử dụng-->
     <update id="markAsUsed" parameterType="int">
         UPDATE user_otp
         SET is_deleted = 1
@@ -76,16 +88,6 @@
     </update>
 
 
-<!--    tìm otp mới nhất của mail để kiểm tra otp xác nhận cho đk hoặc quên mk-->
-    <select id="findByEmailAndOtpForMark" resultMap="EmailOtpResultMap">
-        SELECT *
-        FROM user_otp
-        WHERE email = #{email}
-        AND otp_code = #{otpCode}
-        AND is_deleted = 0
-        AND expires_at &gt; CURRENT_TIMESTAMP
-        ORDER BY created_at DESC
-        LIMIT 1
-    </select>
+
 </mapper>
 

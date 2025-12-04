@@ -166,6 +166,8 @@ public class ProductServiceImpl implements ProductService {
         if(productMapper.findById(id)==null){
             throw new AppException(ErrorCode.PRODUCT_NOT_EXISTS);
         }
+
+//        kiểm tra sp có đang tồn tại trong đơn hàng nào ko
         int activeOrderCount = orderDetailMapper.countActiveOrderDetailsByProductId(id);
         if (activeOrderCount > 0) {
             throw new AppException(ErrorCode.PRODUCT_IN_ORDER_NOT_DELETABLE);
